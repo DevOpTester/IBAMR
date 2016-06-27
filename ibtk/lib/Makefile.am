@@ -93,6 +93,7 @@ DIM_INDEPENDENT_SOURCES = \
 ../src/solvers/impls/KrylovLinearSolverPoissonSolverInterface.cpp \
 ../src/solvers/impls/LaplaceOperator.cpp \
 ../src/solvers/impls/NewtonKrylovSolverManager.cpp \
+../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp \
 ../src/solvers/impls/PETScKrylovLinearSolver.cpp \
 ../src/solvers/impls/PETScKrylovPoissonSolver.cpp \
 ../src/solvers/impls/PETScLevelSolver.cpp \
@@ -154,6 +155,7 @@ DIM_INDEPENDENT_SOURCES = \
 
 if LIBMESH_ENABLED
 DIM_INDEPENDENT_SOURCES += \
+../src/lagrangian/FEDataInterpolation.cpp \
 ../src/lagrangian/FEDataManager.cpp
 endif
 
@@ -255,6 +257,7 @@ pkg_include_HEADERS += \
 ../include/ibtk/NodeDataSynchronization.h \
 ../include/ibtk/NodeSynchCopyFillPattern.h \
 ../include/ibtk/NormOps.h \
+../include/ibtk/PETScAugmentedKrylovLinearSolver.h \
 ../include/ibtk/PETScKrylovLinearSolver.h \
 ../include/ibtk/PETScKrylovPoissonSolver.h \
 ../include/ibtk/PETScLevelSolver.h \
@@ -311,6 +314,7 @@ pkg_include_HEADERS += \
 
 if LIBMESH_ENABLED
 DIM_INDEPENDENT_SOURCES += \
+../include/ibtk/FEDataInterpolation.h \
 ../include/ibtk/FEDataManager.h \
 ../include/ibtk/libmesh_utilities.h
 endif

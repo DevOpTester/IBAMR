@@ -91,8 +91,9 @@ build_triplet = @build@
 host_triplet = @host@
 @SAMRAI2D_ENABLED_TRUE@am__append_1 = libIBTK2d.a
 @SAMRAI3D_ENABLED_TRUE@am__append_2 = libIBTK3d.a
-@LIBMESH_ENABLED_TRUE@am__append_3 =  \
+@LIBMESH_ENABLED_TRUE@am__append_3 = ../src/lagrangian/FEDataInterpolation.cpp \
 @LIBMESH_ENABLED_TRUE@	../src/lagrangian/FEDataManager.cpp \
+@LIBMESH_ENABLED_TRUE@	../include/ibtk/FEDataInterpolation.h \
 @LIBMESH_ENABLED_TRUE@	../include/ibtk/FEDataManager.h \
 @LIBMESH_ENABLED_TRUE@	../include/ibtk/libmesh_utilities.h
 subdir = lib
@@ -223,6 +224,7 @@ am__libIBTK2d_a_SOURCES_DIST =  \
 	../src/solvers/impls/KrylovLinearSolverPoissonSolverInterface.cpp \
 	../src/solvers/impls/LaplaceOperator.cpp \
 	../src/solvers/impls/NewtonKrylovSolverManager.cpp \
+	../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp \
 	../src/solvers/impls/PETScKrylovLinearSolver.cpp \
 	../src/solvers/impls/PETScKrylovPoissonSolver.cpp \
 	../src/solvers/impls/PETScLevelSolver.cpp \
@@ -281,7 +283,9 @@ am__libIBTK2d_a_SOURCES_DIST =  \
 	../src/utilities/StreamableFactory.cpp \
 	../src/utilities/StreamableManager.cpp \
 	../src/utilities/muParserCartGridFunction.cpp \
+	../src/lagrangian/FEDataInterpolation.cpp \
 	../src/lagrangian/FEDataManager.cpp \
+	../include/ibtk/FEDataInterpolation.h \
 	../include/ibtk/FEDataManager.h \
 	../include/ibtk/libmesh_utilities.h \
 	$(top_builddir)/src/boundary/cf_interface/fortran/linearcfinterpolation2d.f \
@@ -303,7 +307,8 @@ am__libIBTK2d_a_SOURCES_DIST =  \
 	$(top_builddir)/src/refine_ops/fortran/cart_side_refine2d.f \
 	$(top_builddir)/src/refine_ops/fortran/divpreservingrefine2d.f \
 	$(top_builddir)/src/solvers/impls/fortran/patchsmoothers2d.f
-@LIBMESH_ENABLED_TRUE@am__objects_1 = ../src/lagrangian/libIBTK2d_a-FEDataManager.$(OBJEXT)
+@LIBMESH_ENABLED_TRUE@am__objects_1 = ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.$(OBJEXT) \
+@LIBMESH_ENABLED_TRUE@	../src/lagrangian/libIBTK2d_a-FEDataManager.$(OBJEXT)
 am__objects_2 = ../src/boundary/libIBTK2d_a-HierarchyGhostCellInterpolation.$(OBJEXT) \
 	../src/boundary/cf_interface/libIBTK2d_a-CartCellDoubleLinearCFInterpolation.$(OBJEXT) \
 	../src/boundary/cf_interface/libIBTK2d_a-CartCellDoubleQuadraticCFInterpolation.$(OBJEXT) \
@@ -364,6 +369,7 @@ am__objects_2 = ../src/boundary/libIBTK2d_a-HierarchyGhostCellInterpolation.$(OB
 	../src/solvers/impls/libIBTK2d_a-KrylovLinearSolverPoissonSolverInterface.$(OBJEXT) \
 	../src/solvers/impls/libIBTK2d_a-LaplaceOperator.$(OBJEXT) \
 	../src/solvers/impls/libIBTK2d_a-NewtonKrylovSolverManager.$(OBJEXT) \
+	../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.$(OBJEXT) \
 	../src/solvers/impls/libIBTK2d_a-PETScKrylovLinearSolver.$(OBJEXT) \
 	../src/solvers/impls/libIBTK2d_a-PETScKrylovPoissonSolver.$(OBJEXT) \
 	../src/solvers/impls/libIBTK2d_a-PETScLevelSolver.$(OBJEXT) \
@@ -502,6 +508,7 @@ am__libIBTK3d_a_SOURCES_DIST =  \
 	../src/solvers/impls/KrylovLinearSolverPoissonSolverInterface.cpp \
 	../src/solvers/impls/LaplaceOperator.cpp \
 	../src/solvers/impls/NewtonKrylovSolverManager.cpp \
+	../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp \
 	../src/solvers/impls/PETScKrylovLinearSolver.cpp \
 	../src/solvers/impls/PETScKrylovPoissonSolver.cpp \
 	../src/solvers/impls/PETScLevelSolver.cpp \
@@ -560,7 +567,9 @@ am__libIBTK3d_a_SOURCES_DIST =  \
 	../src/utilities/StreamableFactory.cpp \
 	../src/utilities/StreamableManager.cpp \
 	../src/utilities/muParserCartGridFunction.cpp \
+	../src/lagrangian/FEDataInterpolation.cpp \
 	../src/lagrangian/FEDataManager.cpp \
+	../include/ibtk/FEDataInterpolation.h \
 	../include/ibtk/FEDataManager.h \
 	../include/ibtk/libmesh_utilities.h \
 	$(top_builddir)/src/boundary/cf_interface/fortran/linearcfinterpolation3d.f \
@@ -581,7 +590,8 @@ am__libIBTK3d_a_SOURCES_DIST =  \
 	$(top_builddir)/src/refine_ops/fortran/cart_side_refine3d.f \
 	$(top_builddir)/src/refine_ops/fortran/divpreservingrefine3d.f \
 	$(top_builddir)/src/solvers/impls/fortran/patchsmoothers3d.f
-@LIBMESH_ENABLED_TRUE@am__objects_3 = ../src/lagrangian/libIBTK3d_a-FEDataManager.$(OBJEXT)
+@LIBMESH_ENABLED_TRUE@am__objects_3 = ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.$(OBJEXT) \
+@LIBMESH_ENABLED_TRUE@	../src/lagrangian/libIBTK3d_a-FEDataManager.$(OBJEXT)
 am__objects_4 = ../src/boundary/libIBTK3d_a-HierarchyGhostCellInterpolation.$(OBJEXT) \
 	../src/boundary/cf_interface/libIBTK3d_a-CartCellDoubleLinearCFInterpolation.$(OBJEXT) \
 	../src/boundary/cf_interface/libIBTK3d_a-CartCellDoubleQuadraticCFInterpolation.$(OBJEXT) \
@@ -642,6 +652,7 @@ am__objects_4 = ../src/boundary/libIBTK3d_a-HierarchyGhostCellInterpolation.$(OB
 	../src/solvers/impls/libIBTK3d_a-KrylovLinearSolverPoissonSolverInterface.$(OBJEXT) \
 	../src/solvers/impls/libIBTK3d_a-LaplaceOperator.$(OBJEXT) \
 	../src/solvers/impls/libIBTK3d_a-NewtonKrylovSolverManager.$(OBJEXT) \
+	../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.$(OBJEXT) \
 	../src/solvers/impls/libIBTK3d_a-PETScKrylovLinearSolver.$(OBJEXT) \
 	../src/solvers/impls/libIBTK3d_a-PETScKrylovPoissonSolver.$(OBJEXT) \
 	../src/solvers/impls/libIBTK3d_a-PETScLevelSolver.$(OBJEXT) \
@@ -1218,6 +1229,7 @@ pkg_include_HEADERS = ../include/ibtk/IBTK_CHKERRQ.h \
 	../include/ibtk/NodeDataSynchronization.h \
 	../include/ibtk/NodeSynchCopyFillPattern.h \
 	../include/ibtk/NormOps.h \
+	../include/ibtk/PETScAugmentedKrylovLinearSolver.h \
 	../include/ibtk/PETScKrylovLinearSolver.h \
 	../include/ibtk/PETScKrylovPoissonSolver.h \
 	../include/ibtk/PETScLevelSolver.h \
@@ -1326,6 +1338,7 @@ DIM_INDEPENDENT_SOURCES =  \
 	../src/solvers/impls/KrylovLinearSolverPoissonSolverInterface.cpp \
 	../src/solvers/impls/LaplaceOperator.cpp \
 	../src/solvers/impls/NewtonKrylovSolverManager.cpp \
+	../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp \
 	../src/solvers/impls/PETScKrylovLinearSolver.cpp \
 	../src/solvers/impls/PETScKrylovPoissonSolver.cpp \
 	../src/solvers/impls/PETScLevelSolver.cpp \
@@ -1734,6 +1747,9 @@ libIBTK.a: $(libIBTK_a_OBJECTS) $(libIBTK_a_DEPENDENCIES) $(EXTRA_libIBTK_a_DEPE
 ../src/solvers/impls/libIBTK2d_a-NewtonKrylovSolverManager.$(OBJEXT):  \
 	../src/solvers/impls/$(am__dirstamp) \
 	../src/solvers/impls/$(DEPDIR)/$(am__dirstamp)
+../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.$(OBJEXT):  \
+	../src/solvers/impls/$(am__dirstamp) \
+	../src/solvers/impls/$(DEPDIR)/$(am__dirstamp)
 ../src/solvers/impls/libIBTK2d_a-PETScKrylovLinearSolver.$(OBJEXT):  \
 	../src/solvers/impls/$(am__dirstamp) \
 	../src/solvers/impls/$(DEPDIR)/$(am__dirstamp)
@@ -1926,6 +1942,9 @@ libIBTK.a: $(libIBTK_a_OBJECTS) $(libIBTK_a_DEPENDENCIES) $(EXTRA_libIBTK_a_DEPE
 ../src/utilities/libIBTK2d_a-muParserCartGridFunction.$(OBJEXT):  \
 	../src/utilities/$(am__dirstamp) \
 	../src/utilities/$(DEPDIR)/$(am__dirstamp)
+../src/lagrangian/libIBTK2d_a-FEDataInterpolation.$(OBJEXT):  \
+	../src/lagrangian/$(am__dirstamp) \
+	../src/lagrangian/$(DEPDIR)/$(am__dirstamp)
 ../src/lagrangian/libIBTK2d_a-FEDataManager.$(OBJEXT):  \
 	../src/lagrangian/$(am__dirstamp) \
 	../src/lagrangian/$(DEPDIR)/$(am__dirstamp)
@@ -2204,6 +2223,9 @@ libIBTK2d.a: $(libIBTK2d_a_OBJECTS) $(libIBTK2d_a_DEPENDENCIES) $(EXTRA_libIBTK2
 ../src/solvers/impls/libIBTK3d_a-NewtonKrylovSolverManager.$(OBJEXT):  \
 	../src/solvers/impls/$(am__dirstamp) \
 	../src/solvers/impls/$(DEPDIR)/$(am__dirstamp)
+../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.$(OBJEXT):  \
+	../src/solvers/impls/$(am__dirstamp) \
+	../src/solvers/impls/$(DEPDIR)/$(am__dirstamp)
 ../src/solvers/impls/libIBTK3d_a-PETScKrylovLinearSolver.$(OBJEXT):  \
 	../src/solvers/impls/$(am__dirstamp) \
 	../src/solvers/impls/$(DEPDIR)/$(am__dirstamp)
@@ -2378,6 +2400,9 @@ libIBTK2d.a: $(libIBTK2d_a_OBJECTS) $(libIBTK2d_a_DEPENDENCIES) $(EXTRA_libIBTK2
 ../src/utilities/libIBTK3d_a-muParserCartGridFunction.$(OBJEXT):  \
 	../src/utilities/$(am__dirstamp) \
 	../src/utilities/$(DEPDIR)/$(am__dirstamp)
+../src/lagrangian/libIBTK3d_a-FEDataInterpolation.$(OBJEXT):  \
+	../src/lagrangian/$(am__dirstamp) \
+	../src/lagrangian/$(DEPDIR)/$(am__dirstamp)
 ../src/lagrangian/libIBTK3d_a-FEDataManager.$(OBJEXT):  \
 	../src/lagrangian/$(am__dirstamp) \
 	../src/lagrangian/$(DEPDIR)/$(am__dirstamp)
@@ -2496,6 +2521,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@../src/coarsen_ops/$(DEPDIR)/libIBTK3d_a-CartSideDoubleCubicCoarsen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/coarsen_ops/$(DEPDIR)/libIBTK3d_a-CartSideDoubleRT0Coarsen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/coarsen_ops/$(DEPDIR)/libIBTK3d_a-LMarkerCoarsen.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataManager.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-LData.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-LDataManager.Po@am__quote@
@@ -2515,6 +2541,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-LSetVariable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-LSiloDataWriter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK2d_a-LTransaction.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataManager.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK3d_a-LData.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/lagrangian/$(DEPDIR)/libIBTK3d_a-LDataManager.Po@am__quote@
@@ -2570,6 +2597,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-KrylovLinearSolverPoissonSolverInterface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-LaplaceOperator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-NewtonKrylovSolverManager.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScKrylovLinearSolver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScKrylovPoissonSolver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScLevelSolver.Po@am__quote@
@@ -2598,6 +2626,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-KrylovLinearSolverPoissonSolverInterface.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-LaplaceOperator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-NewtonKrylovSolverManager.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScKrylovLinearSolver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScKrylovPoissonSolver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScLevelSolver.Po@am__quote@
@@ -3565,6 +3594,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/solvers/impls/libIBTK2d_a-NewtonKrylovSolverManager.obj `if test -f '../src/solvers/impls/NewtonKrylovSolverManager.cpp'; then $(CYGPATH_W) '../src/solvers/impls/NewtonKrylovSolverManager.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solvers/impls/NewtonKrylovSolverManager.cpp'; fi`
 
+../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.o: ../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.o -MD -MP -MF ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Tpo -c -o ../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.o `test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' || echo '$(srcdir)/'`../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Tpo ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' object='../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.o `test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' || echo '$(srcdir)/'`../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+
+../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.obj: ../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.obj -MD -MP -MF ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Tpo -c -o ../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.obj `if test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; then $(CYGPATH_W) '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Tpo ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' object='../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/solvers/impls/libIBTK2d_a-PETScAugmentedKrylovLinearSolver.obj `if test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; then $(CYGPATH_W) '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; fi`
+
 ../src/solvers/impls/libIBTK2d_a-PETScKrylovLinearSolver.o: ../src/solvers/impls/PETScKrylovLinearSolver.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/solvers/impls/libIBTK2d_a-PETScKrylovLinearSolver.o -MD -MP -MF ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScKrylovLinearSolver.Tpo -c -o ../src/solvers/impls/libIBTK2d_a-PETScKrylovLinearSolver.o `test -f '../src/solvers/impls/PETScKrylovLinearSolver.cpp' || echo '$(srcdir)/'`../src/solvers/impls/PETScKrylovLinearSolver.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScKrylovLinearSolver.Tpo ../src/solvers/impls/$(DEPDIR)/libIBTK2d_a-PETScKrylovLinearSolver.Po
@@ -4376,6 +4419,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/muParserCartGridFunction.cpp' object='../src/utilities/libIBTK2d_a-muParserCartGridFunction.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBTK2d_a-muParserCartGridFunction.obj `if test -f '../src/utilities/muParserCartGridFunction.cpp'; then $(CYGPATH_W) '../src/utilities/muParserCartGridFunction.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/muParserCartGridFunction.cpp'; fi`
+
+../src/lagrangian/libIBTK2d_a-FEDataInterpolation.o: ../src/lagrangian/FEDataInterpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.o -MD -MP -MF ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Tpo -c -o ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.o `test -f '../src/lagrangian/FEDataInterpolation.cpp' || echo '$(srcdir)/'`../src/lagrangian/FEDataInterpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Tpo ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/lagrangian/FEDataInterpolation.cpp' object='../src/lagrangian/libIBTK2d_a-FEDataInterpolation.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.o `test -f '../src/lagrangian/FEDataInterpolation.cpp' || echo '$(srcdir)/'`../src/lagrangian/FEDataInterpolation.cpp
+
+../src/lagrangian/libIBTK2d_a-FEDataInterpolation.obj: ../src/lagrangian/FEDataInterpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.obj -MD -MP -MF ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Tpo -c -o ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.obj `if test -f '../src/lagrangian/FEDataInterpolation.cpp'; then $(CYGPATH_W) '../src/lagrangian/FEDataInterpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/lagrangian/FEDataInterpolation.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Tpo ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataInterpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/lagrangian/FEDataInterpolation.cpp' object='../src/lagrangian/libIBTK2d_a-FEDataInterpolation.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/lagrangian/libIBTK2d_a-FEDataInterpolation.obj `if test -f '../src/lagrangian/FEDataInterpolation.cpp'; then $(CYGPATH_W) '../src/lagrangian/FEDataInterpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/lagrangian/FEDataInterpolation.cpp'; fi`
 
 ../src/lagrangian/libIBTK2d_a-FEDataManager.o: ../src/lagrangian/FEDataManager.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/lagrangian/libIBTK2d_a-FEDataManager.o -MD -MP -MF ../src/lagrangian/$(DEPDIR)/libIBTK2d_a-FEDataManager.Tpo -c -o ../src/lagrangian/libIBTK2d_a-FEDataManager.o `test -f '../src/lagrangian/FEDataManager.cpp' || echo '$(srcdir)/'`../src/lagrangian/FEDataManager.cpp
@@ -5231,6 +5288,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/solvers/impls/libIBTK3d_a-NewtonKrylovSolverManager.obj `if test -f '../src/solvers/impls/NewtonKrylovSolverManager.cpp'; then $(CYGPATH_W) '../src/solvers/impls/NewtonKrylovSolverManager.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solvers/impls/NewtonKrylovSolverManager.cpp'; fi`
 
+../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.o: ../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.o -MD -MP -MF ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Tpo -c -o ../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.o `test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' || echo '$(srcdir)/'`../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Tpo ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' object='../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.o `test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' || echo '$(srcdir)/'`../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+
+../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.obj: ../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.obj -MD -MP -MF ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Tpo -c -o ../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.obj `if test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; then $(CYGPATH_W) '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Tpo ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp' object='../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/solvers/impls/libIBTK3d_a-PETScAugmentedKrylovLinearSolver.obj `if test -f '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; then $(CYGPATH_W) '../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/solvers/impls/PETScAugmentedKrylovLinearSolver.cpp'; fi`
+
 ../src/solvers/impls/libIBTK3d_a-PETScKrylovLinearSolver.o: ../src/solvers/impls/PETScKrylovLinearSolver.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/solvers/impls/libIBTK3d_a-PETScKrylovLinearSolver.o -MD -MP -MF ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScKrylovLinearSolver.Tpo -c -o ../src/solvers/impls/libIBTK3d_a-PETScKrylovLinearSolver.o `test -f '../src/solvers/impls/PETScKrylovLinearSolver.cpp' || echo '$(srcdir)/'`../src/solvers/impls/PETScKrylovLinearSolver.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScKrylovLinearSolver.Tpo ../src/solvers/impls/$(DEPDIR)/libIBTK3d_a-PETScKrylovLinearSolver.Po
@@ -6042,6 +6113,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/muParserCartGridFunction.cpp' object='../src/utilities/libIBTK3d_a-muParserCartGridFunction.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBTK3d_a-muParserCartGridFunction.obj `if test -f '../src/utilities/muParserCartGridFunction.cpp'; then $(CYGPATH_W) '../src/utilities/muParserCartGridFunction.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/muParserCartGridFunction.cpp'; fi`
+
+../src/lagrangian/libIBTK3d_a-FEDataInterpolation.o: ../src/lagrangian/FEDataInterpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.o -MD -MP -MF ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Tpo -c -o ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.o `test -f '../src/lagrangian/FEDataInterpolation.cpp' || echo '$(srcdir)/'`../src/lagrangian/FEDataInterpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Tpo ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/lagrangian/FEDataInterpolation.cpp' object='../src/lagrangian/libIBTK3d_a-FEDataInterpolation.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.o `test -f '../src/lagrangian/FEDataInterpolation.cpp' || echo '$(srcdir)/'`../src/lagrangian/FEDataInterpolation.cpp
+
+../src/lagrangian/libIBTK3d_a-FEDataInterpolation.obj: ../src/lagrangian/FEDataInterpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.obj -MD -MP -MF ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Tpo -c -o ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.obj `if test -f '../src/lagrangian/FEDataInterpolation.cpp'; then $(CYGPATH_W) '../src/lagrangian/FEDataInterpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/lagrangian/FEDataInterpolation.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Tpo ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataInterpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/lagrangian/FEDataInterpolation.cpp' object='../src/lagrangian/libIBTK3d_a-FEDataInterpolation.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/lagrangian/libIBTK3d_a-FEDataInterpolation.obj `if test -f '../src/lagrangian/FEDataInterpolation.cpp'; then $(CYGPATH_W) '../src/lagrangian/FEDataInterpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/lagrangian/FEDataInterpolation.cpp'; fi`
 
 ../src/lagrangian/libIBTK3d_a-FEDataManager.o: ../src/lagrangian/FEDataManager.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBTK3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/lagrangian/libIBTK3d_a-FEDataManager.o -MD -MP -MF ../src/lagrangian/$(DEPDIR)/libIBTK3d_a-FEDataManager.Tpo -c -o ../src/lagrangian/libIBTK3d_a-FEDataManager.o `test -f '../src/lagrangian/FEDataManager.cpp' || echo '$(srcdir)/'`../src/lagrangian/FEDataManager.cpp

@@ -51,6 +51,7 @@
 // Headers for application-specific algorithm/data structure objects
 #include <boost/multi_array.hpp>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
+#include <ibamr/IBFECentroidPostProcessor.h>
 #include <ibamr/IBFEMethod.h>
 #include <ibamr/INSCollocatedHierarchyIntegrator.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
@@ -88,7 +89,8 @@ PK1_stress_function(TensorValue<double>& PP,
                     const libMesh::Point& /*X*/,
                     const libMesh::Point& /*s*/,
                     Elem* const /*elem*/,
-                    const std::vector<NumericVector<double>*>& /*system_data*/,
+                    const std::vector<const std::vector<double>*>& /*var_data*/,
+                    const std::vector<const std::vector<VectorValue<double> >*>& /*grad_var_data*/,
                     double /*time*/,
                     void* /*ctx*/)
 {
@@ -239,9 +241,36 @@ main(int argc, char* argv[])
                                         load_balancer);
 
         // Configure the IBFE solver.
+        ib_method_ops->initializeFEEquationSystems();
         FEDataManager* fe_data_manager = ib_method_ops->getFEDataManager();
         ib_method_ops->registerInitialCoordinateMappingFunction(coordinate_mapping_function);
         ib_method_ops->registerPK1StressFunction(PK1_stress_function);
+        if (input_db->getBoolWithDefault("ELIMINATE_PRESSURE_JUMPS", false))
+        {
+            ib_method_ops->registerStressNormalizationPart();
+        }
+
+        // Set up post processor to recover computed stresses.
+        Pointer<IBFEPostProcessor> ib_post_processor =
+            new IBFECentroidPostProcessor("IBFEPostProcessor", fe_data_manager);
+        {
+            Pointer<hier::Variable<NDIM> > p_var = navier_stokes_integrator->getPressureVariable();
+            Pointer<VariableContext> p_current_ctx = navier_stokes_integrator->getCurrentContext();
+            HierarchyGhostCellInterpolation::InterpolationTransactionComponent p_ghostfill(
+                /*data_idx*/ -1,
+                "LINEAR_REFINE",
+                /*use_cf_bdry_interpolation*/ false,
+                "CONSERVATIVE_COARSEN",
+                "LINEAR");
+            FEDataManager::InterpSpec p_interp_spec("PIECEWISE_LINEAR",
+                                                    QGAUSS,
+                                                    FIFTH,
+                                                    /*use_adaptive_quadrature*/ false,
+                                                    /*point_density*/ 2.0,
+                                                    /*use_consistent_mass_matrix*/ true);
+            ib_post_processor->registerInterpolatedScalarEulerianVariable(
+                "p_f", LAGRANGE, FIRST, p_var, p_current_ctx, p_ghostfill, p_interp_spec);
+        }
 
         // Create Eulerian initial condition specification objects.  These
         // objects also are used to specify exact solution values for error
@@ -306,6 +335,7 @@ main(int argc, char* argv[])
             system.get_dof_map().add_periodic_boundary(pbc);
         }
         ib_method_ops->initializeFEData();
+        if (ib_post_processor) ib_post_processor->initializeFEData();
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Deallocate initialization objects.
@@ -316,11 +346,10 @@ main(int argc, char* argv[])
         input_db->printClassData(plog);
 
         // Setup data used to determine the accuracy of the computed solution.
-        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
-
         const Pointer<hier::Variable<NDIM> > u_var = navier_stokes_integrator->getVelocityVariable();
         const Pointer<VariableContext> u_ctx = navier_stokes_integrator->getCurrentContext();
 
+        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
         const int u_idx = var_db->mapVariableAndContextToIndex(u_var, u_ctx);
         const int u_cloned_idx = var_db->registerClonedPatchDataIndex(u_var, u_idx);
 
@@ -352,6 +381,7 @@ main(int argc, char* argv[])
             }
             if (uses_exodus)
             {
+                if (ib_post_processor) ib_post_processor->postProcessData(loop_time);
                 exodus_io->write_timestep(
                     exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
             }
@@ -402,6 +432,7 @@ main(int argc, char* argv[])
                 }
                 if (uses_exodus)
                 {
+                    if (ib_post_processor) ib_post_processor->postProcessData(loop_time);
                     exodus_io->write_timestep(
                         exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
                 }
