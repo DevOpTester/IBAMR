@@ -105,10 +105,18 @@ class IBFEMethod : public IBStrategy
 {
 public:
     static const std::string COORDS_SYSTEM_NAME;
+    static const std::string COORDS0_SYSTEM_NAME;
     static const std::string COORD_MAPPING_SYSTEM_NAME;
+    static const std::string DP_SYSTEM_NAME;
+    static const std::string DU_M_SYSTEM_NAME;
+    static const std::string DU_P_SYSTEM_NAME;
+    static const std::string DU_M_SIDE_SYSTEM_NAME;
+    static const std::string DU_P_SIDE_SYSTEM_NAME;
     static const std::string FORCE_SYSTEM_NAME;
     static const std::string VELOCITY_SYSTEM_NAME;
-    static const std::string BODY_VELOCITY_SYSTEM_NAME;
+
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double> > mask_var;
+    int mask_current_idx, mask_new_idx, mask_scratch_idx;
 
     /*!
      * \brief Constructor.
@@ -144,9 +152,14 @@ public:
     IBTK::FEDataManager* getFEDataManager(unsigned int part = 0) const;
 
     /*!
+     * Indicate that a part should use stress normalization.
+     */
+    void registerStressNormalizationPart(unsigned int part = 0);
+
+    /*!
      * Typedef specifying interface for coordinate mapping function.
      */
-    typedef void (*CoordinateMappingFcnPtr)(libMesh::Point& X, const libMesh::Point& s, void* ctx);
+    typedef void (*CoordinateMappingFcnPtr)(libMesh::Point& x, const libMesh::Point& X, void* ctx);
 
     /*!
      * Struct encapsulating coordinate mapping function data.
@@ -169,91 +182,28 @@ public:
      * taken to be the same as the Lagrangian coordinate system, i.e., the
      * initial coordinate mapping is assumed to be the identity mapping.
      */
-    void registerInitialCoordinateMappingFunction(CoordinateMappingFcnPtr fcn, void* ctx = NULL, unsigned int part = 0);
-
-    /*!
-     * Register the (optional) function used to initialize the physical
-     * coordinates from the Lagrangian coordinates.
-     *
-     * \note If no function is provided, the initial physical coordinates are
-     * taken to be the same as the Lagrangian coordinate system, i.e., the
-     * initial coordinate mapping is assumed to be the identity mapping.
-     */
     void registerInitialCoordinateMappingFunction(const CoordinateMappingFcnData& data, unsigned int part = 0);
-
-    /*!
-     * Typedef specifying interface for PK1 stress tensor function.
-     */
-    typedef IBTK::TensorMeshFcnPtr PK1StressFcnPtr;
-
-    /*!
-     * Struct encapsulating PK1 stress tensor function data.
-     */
-    struct PK1StressFcnData
-    {
-        PK1StressFcnData(PK1StressFcnPtr fcn = NULL,
-                         const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                         void* ctx = NULL,
-                         libMesh::QuadratureType quad_type = libMesh::INVALID_Q_RULE,
-                         libMesh::Order quad_order = libMesh::INVALID_ORDER)
-            : fcn(fcn), systems(systems), ctx(ctx), quad_type(quad_type), quad_order(quad_order)
-        {
-        }
-
-        PK1StressFcnPtr fcn;
-        std::vector<unsigned int> systems;
-        void* ctx;
-        libMesh::QuadratureType quad_type;
-        libMesh::Order quad_order;
-    };
-
-    /*!
-     * Register the (optional) function to compute the first Piola-Kirchhoff
-     * stress tensor, used to compute the forces on the Lagrangian finite
-     * element mesh.
-     *
-     * \note It is possible to register multiple PK1 stress functions with this
-     * class.  This is intended to be used to implement selective reduced
-     * integration.
-     */
-    void registerPK1StressFunction(PK1StressFcnPtr fcn,
-                                   const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                                   void* ctx = NULL,
-                                   libMesh::QuadratureType quad_type = libMesh::INVALID_Q_RULE,
-                                   libMesh::Order quad_order = libMesh::INVALID_ORDER,
-                                   unsigned int part = 0);
-
-    /*!
-     * Register the (optional) function to compute the first Piola-Kirchhoff
-     * stress tensor, used to compute the forces on the Lagrangian finite
-     * element mesh.
-     *
-     * \note It is possible to register multiple PK1 stress functions with this
-     * class.  This is intended to be used to implement selective reduced
-     * integration.
-     */
-    void registerPK1StressFunction(const PK1StressFcnData& data, unsigned int part = 0);
 
     /*!
      * Typedef specifying interface for Lagrangian body force distribution
      * function.
      */
-    typedef IBTK::VectorMeshFcnPtr LagBodyForceFcnPtr;
+    typedef IBTK::VectorMeshFcnPtr LagForceFcnPtr;
 
     /*!
-     * Struct encapsulating Lagrangian body force distribution data.
+     * Struct encapsulating Lagrangian force distribution data.
      */
-    struct LagBodyForceFcnData
+    struct LagForceFcnData
     {
-        LagBodyForceFcnData(LagBodyForceFcnPtr fcn = NULL,
-                            const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                            void* ctx = NULL)
-            : fcn(fcn), systems(systems), ctx(ctx)
+        LagForceFcnData(LagForceFcnPtr fcn = NULL,
+                        const std::vector<IBTK::SystemData>& system_data = std::vector<IBTK::SystemData>(),
+                        void* const ctx = NULL)
+            : fcn(fcn), system_data(system_data), ctx(ctx)
         {
         }
 
-        LagBodyForceFcnPtr fcn;
-        std::vector<unsigned int> systems;
+        LagForceFcnPtr fcn;
+        std::vector<IBTK::SystemData> system_data;
         void* ctx;
     };
 
@@ -264,107 +214,7 @@ public:
      * \note It is \em NOT possible to register multiple body force functions
      * with this class.
      */
-    void registerLagBodyForceFunction(LagBodyForceFcnPtr fcn,
-                                      const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                                      void* ctx = NULL,
-                                      unsigned int part = 0);
-
-    /*!
-     * Register the (optional) function to compute body force distributions on
-     * the Lagrangian finite element mesh.
-     *
-     * \note It is \em NOT possible to register multiple body force functions
-     * with this class.
-     */
-    void registerLagBodyForceFunction(const LagBodyForceFcnData& data, unsigned int part = 0);
-
-    /*!
-     * Typedef specifying interface for Lagrangian pressure force distribution
-     * function.
-     */
-    typedef IBTK::ScalarSurfaceFcnPtr LagSurfacePressureFcnPtr;
-
-    /*!
-     * Struct encapsulating Lagrangian surface pressure distribution data.
-     */
-    struct LagSurfacePressureFcnData
-    {
-        LagSurfacePressureFcnData(LagSurfacePressureFcnPtr fcn = NULL,
-                                  const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                                  void* ctx = NULL)
-            : fcn(fcn), systems(systems), ctx(ctx)
-        {
-        }
-
-        LagSurfacePressureFcnPtr fcn;
-        std::vector<unsigned int> systems;
-        void* ctx;
-    };
-
-    /*!
-     * Register the (optional) function to compute surface pressure
-     * distributions on the Lagrangian finite element mesh.
-     *
-     * \note It is \em NOT possible to register multiple pressure functions with
-     * this class.
-     */
-    void registerLagSurfacePressureFunction(LagSurfacePressureFcnPtr fcn,
-                                            const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                                            void* ctx = NULL,
-                                            unsigned int part = 0);
-
-    /*!
-     * Register the (optional) function to compute surface pressure
-     * distributions on the Lagrangian finite element mesh.
-     *
-     * \note It is \em NOT possible to register multiple pressure functions with
-     * this class.
-     */
-    void registerLagSurfacePressureFunction(const LagSurfacePressureFcnData& data, unsigned int part = 0);
-
-    /*!
-     * Typedef specifying interface for Lagrangian surface force distribution
-     * function.
-     */
-    typedef IBTK::VectorSurfaceFcnPtr LagSurfaceForceFcnPtr;
-
-    /*!
-     * Struct encapsulating Lagrangian surface force distribution data.
-     */
-    struct LagSurfaceForceFcnData
-    {
-        LagSurfaceForceFcnData(LagSurfaceForceFcnPtr fcn = NULL,
-                               const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                               void* ctx = NULL)
-            : fcn(fcn), systems(systems), ctx(ctx)
-        {
-        }
-
-        LagSurfaceForceFcnPtr fcn;
-        std::vector<unsigned int> systems;
-        void* ctx;
-    };
-
-    /*!
-     * Register the (optional) function to compute surface force distributions
-     * on the Lagrangian finite element mesh.
-     *
-     * \note It is \em NOT possible to register multiple surface force functions
-     * with this class.
-     */
-    void registerLagSurfaceForceFunction(LagSurfaceForceFcnPtr fcn,
-                                         const std::vector<unsigned int>& systems = std::vector<unsigned int>(),
-                                         void* ctx = NULL,
-                                         unsigned int part = 0);
-
-    /*!
-     * Register the (optional) function to compute surface force distributions
-     * on the Lagrangian finite element mesh.
-     *
-     * \note It is \em NOT possible to register multiple surface force functions
-     * with this class.
-     */
-    void registerLagSurfaceForceFunction(const LagSurfaceForceFcnData& data, unsigned int part = 0);
+    void registerLagForceFunction(const LagForceFcnData& data, unsigned int part = 0);
 
     /*!
      * Return the number of ghost cells required by the Lagrangian-Eulerian
@@ -433,10 +283,41 @@ public:
                 double data_time);
 
     /*!
+     * Get the default interpolation spec object used by the class.
+     */
+    IBTK::FEDataManager::InterpSpec getDefaultInterpSpec() const;
+
+    /*!
+     * Get the default spread spec object used by the class.
+     */
+    IBTK::FEDataManager::SpreadSpec getDefaultSpreadSpec() const;
+
+    /*!
+     * Set the interpolation spec object used with a particular mesh part.
+     */
+    void setInterpSpec(const IBTK::FEDataManager::InterpSpec& interp_spec, unsigned int part = 0);
+
+    /*!
+     * Set the spread spec object used with a particular mesh part.
+     */
+    void setSpreadSpec(const IBTK::FEDataManager::SpreadSpec& spread_spec, unsigned int part = 0);
+
+    /*!
+     * Initialize the FE equation systems objects.  This method must be called
+     * prior to calling initializeFEData().
+     */
+    void initializeFEEquationSystems();
+
+    /*!
      * Initialize FE data.  This method must be called prior to calling
      * IBHierarchyIntegrator::initializePatchHierarchy().
      */
     void initializeFEData();
+
+    /*!
+     * \brief Register Eulerian variables with the parent IBHierarchyIntegrator.
+     */
+    void registerEulerianVariables();
 
     /*!
      * Initialize Lagrangian data corresponding to the given AMR patch hierarchy
@@ -536,20 +417,11 @@ protected:
      * normal component of the transmission force along the physical boundary of
      * the Lagrangian structure.
      */
-    void computeInteriorForceDensity(libMesh::PetscVector<double>& G_vec,
+    void computeInteriorForceDensity(libMesh::PetscVector<double>& F_vec,
                                      libMesh::PetscVector<double>& X_vec,
+                                     libMesh::PetscVector<double>& dP_vec,
                                      double data_time,
                                      unsigned int part);
-
-    /*!
-     * \brief Spread the transmission force density along the physical boundary
-     * of the Lagrangian structure.
-     */
-    void spreadTransmissionForceDensity(int f_data_idx,
-                                        libMesh::PetscVector<double>& X_ghost_vec,
-                                        IBTK::RobinPhysBdryPatchStrategy* f_phys_bdry_op,
-                                        double data_time,
-                                        unsigned int part);
 
     /*!
      * \brief Impose jump conditions determined from the interior and
@@ -559,6 +431,15 @@ protected:
     void imposeJumpConditions(int f_data_idx,
                               libMesh::PetscVector<double>& F_ghost_vec,
                               libMesh::PetscVector<double>& X_ghost_vec,
+                              libMesh::PetscVector<double>& dU_m_vec,
+                              libMesh::PetscVector<double>& dU_p_vec,
+                              libMesh::PetscVector<double>& dU_m_side_vec,
+                              libMesh::PetscVector<double>& dU_p_side_vec,
+                              libMesh::PetscVector<double>& dP_ghost_vec,
+                              libMesh::PetscVector<double>& dU_m_ghost_vec,
+                              libMesh::PetscVector<double>& dU_p_ghost_vec,
+                              libMesh::PetscVector<double>& dU_m_side_ghost_vec,
+                              libMesh::PetscVector<double>& dU_p_side_ghost_vec,
                               double data_time,
                               unsigned int part);
 
@@ -570,7 +451,7 @@ protected:
     void initializeCoordinates(unsigned int part);
 
     /*!
-     * \brief Compute dX = X - s, useful mainly for visualization purposes.
+     * \brief Compute dX = x - X, useful mainly for visualization purposes.
      */
     void updateCoordinateMapping(unsigned int part);
 
@@ -596,24 +477,33 @@ protected:
      * FE data associated with this object.
      */
     std::vector<libMesh::Mesh*> d_meshes;
+    int d_max_level_number;
     std::vector<libMesh::EquationSystems*> d_equation_systems;
 
     const unsigned int d_num_parts;
     std::vector<IBTK::FEDataManager*> d_fe_data_managers;
     SAMRAI::hier::IntVector<NDIM> d_ghosts;
-    std::vector<libMesh::System *> d_X_systems, d_U_systems, d_F_systems;
+    std::vector<libMesh::System *> d_X_systems, d_X0_systems, d_U_systems, d_dU_p_systems,d_dU_m_systems, d_dU_p_side_systems, d_dU_m_side_systems, d_F_systems, d_dP_systems;
     std::vector<libMesh::PetscVector<double> *> d_X_current_vecs, d_X_new_vecs, d_X_half_vecs, d_X_IB_ghost_vecs;
+    std::vector<libMesh::PetscVector<double>*> d_X0_vecs;
     std::vector<libMesh::PetscVector<double> *> d_U_current_vecs, d_U_new_vecs, d_U_half_vecs;
     std::vector<libMesh::PetscVector<double> *> d_F_half_vecs, d_F_IB_ghost_vecs;
+    std::vector<libMesh::PetscVector<double> *> d_dP_half_vecs, d_dP_IB_ghost_vecs;
+    std::vector<libMesh::PetscVector<double> *> d_dU_p_half_vecs, d_dU_p_IB_ghost_vecs;
+    std::vector<libMesh::PetscVector<double> *> d_dU_m_half_vecs, d_dU_m_IB_ghost_vecs;
+    std::vector<libMesh::PetscVector<double> *> d_dU_p_side_half_vecs, d_dU_p_side_IB_ghost_vecs;
+    std::vector<libMesh::PetscVector<double> *> d_dU_m_side_half_vecs, d_dU_m_side_IB_ghost_vecs;
 
-    bool d_fe_data_initialized;
+    bool d_fe_equation_systems_initialized, d_fe_data_initialized;
 
     /*
      * Method paramters.
      */
-    IBTK::FEDataManager::InterpSpec d_interp_spec;
-    IBTK::FEDataManager::SpreadSpec d_spread_spec;
-    bool d_split_forces;
+    IBTK::FEDataManager::InterpSpec d_default_interp_spec;
+    IBTK::FEDataManager::SpreadSpec d_default_spread_spec;
+    std::vector<IBTK::FEDataManager::InterpSpec> d_interp_spec;
+    std::vector<IBTK::FEDataManager::SpreadSpec> d_spread_spec;
+    bool d_split_normal_force, d_split_tangential_force;
     bool d_use_jump_conditions;
     libMesh::FEFamily d_fe_family;
     libMesh::Order d_fe_order;
@@ -627,22 +517,9 @@ protected:
     std::vector<CoordinateMappingFcnData> d_coordinate_mapping_fcn_data;
 
     /*
-     * Functions used to compute the first Piola-Kirchhoff stress tensor.
+     * Functions used to compute forces on the Lagrangian mesh.
      */
-    std::vector<std::vector<PK1StressFcnData> > d_PK1_stress_fcn_data;
-
-    /*
-     * Functions used to compute additional body and surface forces on the
-     * Lagrangian mesh.
-     */
-    std::vector<LagBodyForceFcnData> d_lag_body_force_fcn_data;
-    std::vector<LagSurfacePressureFcnData> d_lag_surface_pressure_fcn_data;
-    std::vector<LagSurfaceForceFcnData> d_lag_surface_force_fcn_data;
-
-    /*
-     * Collection of all systems required to evaluate various quantities.
-     */
-    std::vector<std::set<unsigned int> > d_fcn_systems, d_body_fcn_systems, d_surface_fcn_systems;
+    std::vector<LagForceFcnData> d_lag_force_fcn_data;
 
     /*
      * Nonuniform load balancing data structures.

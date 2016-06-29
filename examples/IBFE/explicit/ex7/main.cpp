@@ -73,7 +73,8 @@ upper_PK1_stress_function(TensorValue<double>& PP,
                           const libMesh::Point& /*X*/,
                           const libMesh::Point& s,
                           Elem* const /*elem*/,
-                          const vector<NumericVector<double>*>& /*system_data*/,
+                          const vector<const vector<double>*>& /*var_data*/,
+                          const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                           double /*time*/,
                           void* /*ctx*/)
 {
@@ -100,7 +101,8 @@ lower_tether_force_function(VectorValue<double>& F,
                             const libMesh::Point& X,
                             const libMesh::Point& s,
                             Elem* const /*elem*/,
-                            const vector<NumericVector<double>*>& /*system_data*/,
+                            const vector<const vector<double>*>& /*var_data*/,
+                            const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                             double /*time*/,
                             void* /*ctx*/)
 {
@@ -114,7 +116,8 @@ upper_tether_force_function(VectorValue<double>& F,
                             const libMesh::Point& X,
                             const libMesh::Point& s,
                             Elem* const /*elem*/,
-                            const vector<NumericVector<double>*>& /*system_data*/,
+                            const vector<const vector<double>*>& /*var_data*/,
+                            const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                             double /*time*/,
                             void* /*ctx*/)
 {
@@ -325,6 +328,7 @@ main(int argc, char* argv[])
         ib_method_ops->registerLagBodyForceFunction(upper_tether_force_data, 1);
         ib_method_ops->registerPK1StressFunction(upper_PK1_stress_data, 1);
 
+        ib_method_ops->initializeFEEquationSystems();
         EquationSystems* lower_equation_systems = ib_method_ops->getFEDataManager(0)->getEquationSystems();
         EquationSystems* upper_equation_systems = ib_method_ops->getFEDataManager(1)->getEquationSystems();
 

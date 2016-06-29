@@ -73,7 +73,8 @@ block_tether_force_function(VectorValue<double>& F,
                             const libMesh::Point& X,
                             const libMesh::Point& s,
                             Elem* const /*elem*/,
-                            const vector<NumericVector<double>*>& /*system_data*/,
+                            const vector<const vector<double>*>& /*var_data*/,
+                            const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                             double /*time*/,
                             void* /*ctx*/)
 {
@@ -90,7 +91,8 @@ beam_tether_force_function(VectorValue<double>& F,
                            const libMesh::Point& s,
                            Elem* const /*elem*/,
                            const unsigned short int side,
-                           const vector<NumericVector<double>*>& /*system_data*/,
+                           const vector<const vector<double>*>& /*var_data*/,
+                           const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                            double /*time*/,
                            void* /*ctx*/)
 {
@@ -113,7 +115,8 @@ beam_PK1_dev_stress_function(TensorValue<double>& PP,
                              const libMesh::Point& /*X*/,
                              const libMesh::Point& /*s*/,
                              Elem* const /*elem*/,
-                             const vector<NumericVector<double>*>& /*system_data*/,
+                             const vector<const vector<double>*>& /*var_data*/,
+                             const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                              double /*time*/,
                              void* /*ctx*/)
 {
@@ -129,7 +132,8 @@ beam_PK1_dil_stress_function(TensorValue<double>& PP,
                              const libMesh::Point& /*X*/,
                              const libMesh::Point& /*s*/,
                              Elem* const /*elem*/,
-                             const vector<NumericVector<double>*>& /*system_data*/,
+                             const vector<const vector<double>*>& /*var_data*/,
+                             const vector<const vector<VectorValue<double> >*>& /*grad_var_data*/,
                              double /*time*/,
                              void* /*ctx*/)
 {
@@ -502,6 +506,7 @@ main(int argc, char* argv[])
         ib_method_ops->registerPK1StressFunction(beam_PK1_dev_stress_data, 2);
         ib_method_ops->registerPK1StressFunction(beam_PK1_dil_stress_data, 2);
 
+        ib_method_ops->initializeFEEquationSystems();
         EquationSystems* block1_equation_systems = ib_method_ops->getFEDataManager(0)->getEquationSystems();
         EquationSystems* block2_equation_systems = ib_method_ops->getFEDataManager(1)->getEquationSystems();
         EquationSystems* beam_equation_systems = ib_method_ops->getFEDataManager(2)->getEquationSystems();

@@ -67,39 +67,36 @@ namespace ModelData
 {
 // Problem parameters.
 static const double R = 0.25;
-static const double w = 0.0625;
-static const double gamma = 0.0;
+static const double gamma = 0.0625;
 static const double mu = 1.0;
 
 // Coordinate mapping function.
 void
 coordinate_mapping_function(libMesh::Point& X, const libMesh::Point& s, void* /*ctx*/)
 {
-    X(0) = (R + s(1)) * cos(s(0) / R) + 0.5;
-    X(1) = (R + gamma + s(1)) * sin(s(0) / R) + 0.5;
+    X(0) = R * cos(s(0) / R) + 0.5;
+    X(1) = (R + gamma) * sin(s(0) / R) + 0.5;
     return;
 } // coordinate_mapping_function
 
 // Stress tensor function.
-bool smooth_case = false;
 void
-PK1_stress_function(TensorValue<double>& PP,
-                    const TensorValue<double>& FF,
-                    const libMesh::Point& /*X*/,
-                    const libMesh::Point& /*s*/,
-                    Elem* const /*elem*/,
-                    const std::vector<NumericVector<double>*>& /*system_data*/,
-                    double /*time*/,
-                    void* /*ctx*/)
+lag_force_function(VectorValue<double>& F,
+                   const TensorValue<double>& FF,
+                   const libMesh::Point& X,
+                   const libMesh::Point& s,
+                   Elem* const /*elem*/,
+                   const std::vector<const std::vector<double>*>& /*var_data*/,
+                   const std::vector<const std::vector<VectorValue<double> >*>& /*grad_var_data*/,
+                   double /*time*/,
+                   void* /*ctx*/)
 {
-    PP = (mu / w) * FF;
-    if (smooth_case)
-    {
-        PP(0, 1) = 0.0;
-        PP(1, 1) = 0.0;
-    }
+    libMesh::Point X0;
+    X0(0) = 0.5 * R * cos(s(0) / R) + 0.5;
+    X0(1) = 0.5 * R * sin(s(0) / R) + 0.5;
+    F = mu * (X0 - X);
     return;
-} // PK1_stress_function
+} // lag_force_function
 }
 using namespace ModelData;
 
@@ -169,7 +166,6 @@ main(int argc, char* argv[])
         // system before calling IBFEMethod::initializeFEData().
         Mesh mesh(init.comm(), NDIM);
         const double R = 0.25;
-        const double w = 0.0625;
         const double dx0 = 1.0 / 64.0;
         const double dx = input_db->getDouble("DX");
         const double MFAC = input_db->getDouble("MFAC");
@@ -178,16 +174,11 @@ main(int argc, char* argv[])
         bool nested_meshes = input_db->getBoolWithDefault("CONVERGENCE_STUDY", false);
         const int n_x = nested_meshes ? round(16.0 * round(2.0 * M_PI * R / dx0 / 16.0) / MFAC) * round(dx0 / dx) :
                                         ceil(2.0 * M_PI * R / ds);
-        const int n_y = nested_meshes ? round(4.0 * round(w / dx0 / 4.0) / MFAC) * round(dx0 / dx) : ceil(w / ds);
-        MeshTools::Generation::build_square(
-            mesh, n_x, n_y, 0.0, 2.0 * M_PI * R, 0.0, w, Utility::string_to_enum<ElemType>(elem_type));
+        MeshTools::Generation::build_line(mesh, n_x, 0.0, 2.0 * M_PI * R, Utility::string_to_enum<ElemType>(elem_type));
         VectorValue<double> boundary_translation(2.0 * M_PI * R, 0.0, 0.0);
         PeriodicBoundary pbc(boundary_translation);
-        pbc.myboundary = 3;
+        pbc.myboundary = 0;
         pbc.pairedboundary = 1;
-
-        // Configure stress tensor options.
-        smooth_case = input_db->getBool("SMOOTH_CASE");
 
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
@@ -239,9 +230,10 @@ main(int argc, char* argv[])
                                         load_balancer);
 
         // Configure the IBFE solver.
+        ib_method_ops->initializeFEEquationSystems();
         FEDataManager* fe_data_manager = ib_method_ops->getFEDataManager();
         ib_method_ops->registerInitialCoordinateMappingFunction(coordinate_mapping_function);
-        ib_method_ops->registerPK1StressFunction(PK1_stress_function);
+        ib_method_ops->registerLagForceFunction(lag_force_function);
 
         // Create Eulerian initial condition specification objects.  These
         // objects also are used to specify exact solution values for error
@@ -316,11 +308,10 @@ main(int argc, char* argv[])
         input_db->printClassData(plog);
 
         // Setup data used to determine the accuracy of the computed solution.
-        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
-
         const Pointer<hier::Variable<NDIM> > u_var = navier_stokes_integrator->getVelocityVariable();
         const Pointer<VariableContext> u_ctx = navier_stokes_integrator->getCurrentContext();
 
+        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
         const int u_idx = var_db->mapVariableAndContextToIndex(u_var, u_ctx);
         const int u_cloned_idx = var_db->registerClonedPatchDataIndex(u_var, u_idx);
 
@@ -355,13 +346,6 @@ main(int argc, char* argv[])
                 exodus_io->write_timestep(
                     exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
             }
-        }
-
-        // Open streams to save volume of structure.
-        ofstream volume_stream;
-        if (SAMRAI_MPI::getRank() == 0)
-        {
-            volume_stream.open("volume.curve", ios_base::out | ios_base::trunc);
         }
 
         // Main time step loop.
@@ -485,53 +469,6 @@ main(int argc, char* argv[])
                  << "  L2-norm:  " << hier_cc_data_ops.L2Norm(p_cloned_idx, wgt_cc_idx) << "\n"
                  << "  max-norm: " << hier_cc_data_ops.maxNorm(p_cloned_idx, wgt_cc_idx) << "\n"
                  << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-
-            // Compute the volume of the structure.
-            double J_integral = 0.0;
-            System& X_system = equation_systems->get_system<System>(IBFEMethod::COORDS_SYSTEM_NAME);
-            NumericVector<double>* X_vec = X_system.solution.get();
-            NumericVector<double>* X_ghost_vec = X_system.current_local_solution.get();
-            X_vec->localize(*X_ghost_vec);
-            DofMap& X_dof_map = X_system.get_dof_map();
-            std::vector<std::vector<unsigned int> > X_dof_indices(NDIM);
-            AutoPtr<FEBase> fe(FEBase::build(NDIM, X_dof_map.variable_type(0)));
-            AutoPtr<QBase> qrule = QBase::build(QGAUSS, NDIM, FIFTH);
-            fe->attach_quadrature_rule(qrule.get());
-            const std::vector<double>& JxW = fe->get_JxW();
-            const std::vector<std::vector<VectorValue<double> > >& dphi = fe->get_dphi();
-            TensorValue<double> FF;
-            boost::multi_array<double, 2> X_node;
-            const MeshBase::const_element_iterator el_begin = mesh.active_local_elements_begin();
-            const MeshBase::const_element_iterator el_end = mesh.active_local_elements_end();
-            for (MeshBase::const_element_iterator el_it = el_begin; el_it != el_end; ++el_it)
-            {
-                Elem* const elem = *el_it;
-                fe->reinit(elem);
-                for (unsigned int d = 0; d < NDIM; ++d)
-                {
-                    X_dof_map.dof_indices(elem, X_dof_indices[d], d);
-                }
-                const int n_qp = qrule->n_points();
-                get_values_for_interpolation(X_node, *X_ghost_vec, X_dof_indices);
-                for (int qp = 0; qp < n_qp; ++qp)
-                {
-                    jacobian(FF, qp, X_node, dphi);
-                    J_integral += abs(FF.det()) * JxW[qp];
-                }
-            }
-            J_integral = SAMRAI_MPI::sumReduction(J_integral);
-            if (SAMRAI_MPI::getRank() == 0)
-            {
-                volume_stream.precision(12);
-                volume_stream.setf(ios::fixed, ios::floatfield);
-                volume_stream << loop_time << " " << J_integral << endl;
-            }
-        }
-
-        // Close the logging streams.
-        if (SAMRAI_MPI::getRank() == 0)
-        {
-            volume_stream.close();
         }
 
         // Cleanup Eulerian boundary condition specification objects (when

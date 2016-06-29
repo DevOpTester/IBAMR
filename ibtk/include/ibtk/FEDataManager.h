@@ -49,12 +49,17 @@
 #include "LoadBalancer.h"
 #include "PatchHierarchy.h"
 #include "RefineSchedule.h"
+#include "SideVariable.h"
 #include "StandardTagAndInitStrategy.h"
 #include "VariableContext.h"
 #include "boost/multi_array.hpp"
+#include "boost/unordered_map.hpp"
 #include "ibtk/ibtk_utilities.h"
+#include "libmesh/dof_map.h"
+#include "libmesh/elem.h"
 #include "libmesh/enum_order.h"
 #include "libmesh/enum_quadrature_type.h"
+#include "libmesh/system.h"
 #include "tbox/Pointer.h"
 #include "tbox/Serializable.h"
 
@@ -106,6 +111,39 @@ namespace IBTK
 class FEDataManager : public SAMRAI::tbox::Serializable, public SAMRAI::mesh::StandardTagAndInitStrategy<NDIM>
 {
 public:
+    class SystemDofMapCache
+    {
+    public:
+        inline SystemDofMapCache(libMesh::System& system) : d_dof_map(system.get_dof_map())
+        {
+        }
+
+        inline ~SystemDofMapCache()
+        {
+        }
+
+        inline void
+        dof_indices(const libMesh::Elem* const elem, std::vector<unsigned int>& dof_indices, const unsigned int var = 0)
+        {
+            const libMesh::dof_id_type elem_id = elem->id();
+            std::vector<std::vector<unsigned int> >& elem_dof_indices = d_dof_cache[elem_id];
+            if (elem_dof_indices.size() <= var)
+            {
+                elem_dof_indices.resize(var + 1);
+            }
+            if (elem_dof_indices[var].empty())
+            {
+                d_dof_map.dof_indices(elem, elem_dof_indices[var], var);
+            }
+            dof_indices = elem_dof_indices[var];
+            return;
+        }
+
+    private:
+        libMesh::DofMap& d_dof_map;
+        boost::unordered_map<libMesh::dof_id_type, std::vector<std::vector<unsigned int> > > d_dof_cache;
+    };
+
     /*!
      * \brief Struct InterpSpec encapsulates data needed to specify the manner
      * in which Eulerian-to-Lagrangian interpolation is performed when using an
@@ -272,6 +310,16 @@ public:
     libMesh::EquationSystems* getEquationSystems() const;
 
     /*!
+     * \return The DofMapCache for a specified system.
+     */
+    SystemDofMapCache* getDofMapCache(const std::string& system_name);
+
+    /*!
+     * \return The DofMapCache for a specified system.
+     */
+    SystemDofMapCache* getDofMapCache(unsigned int system_num);
+
+    /*!
      * \return The level number to which the equations system object managed by
      * the FEDataManager is assigned.
      */
@@ -294,6 +342,16 @@ public:
      * from the FE mesh to the Cartesian grid
      */
     const SpreadSpec& getDefaultSpreadSpec() const;
+
+    /*!
+     * \return Variable that tracks the inside and outside of the body.
+     */
+    SAMRAI::tbox::Pointer<SAMRAI::pdat::SideVariable<NDIM, double> > getMaskingVariable() const;
+
+    /*!
+     * \return Variable patch data index that tracks the inside and outside of the body.
+     */
+    int getMaskingVariablePatchDataIndex() const;
 
     /*!
      * \return A const reference to the map from local patch number to local
@@ -725,6 +783,12 @@ private:
     int d_qp_count_idx;
 
     /*
+     * SAMRAI::xfer::RefineAlgorithm pointer to fill the ghost cell region of
+     * SAMRAI variables.
+     */
+    SAMRAI::xfer::RefineAlgorithm<NDIM> d_ghost_fill_alg;
+
+    /*
      * SAMRAI::hier::Variable pointer and patch data descriptor indices for the
      * cell variable used to determine the workload for nonuniform load
      * balancing.
@@ -750,6 +814,7 @@ private:
      */
     libMesh::EquationSystems* d_es;
     int d_level_number;
+    std::map<unsigned int, SAMRAI::tbox::Pointer<SystemDofMapCache> > d_system_dof_map_cache;
 
     /*
      * Data to manage mappings between mesh elements and grid patches.

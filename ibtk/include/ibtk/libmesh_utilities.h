@@ -53,62 +53,93 @@
 
 namespace IBTK
 {
-typedef void (*ScalarMeshFcnPtr)(double& F,
-                                 const libMesh::TensorValue<double>& FF,
-                                 const libMesh::Point& X,
-                                 const libMesh::Point& s,
-                                 libMesh::Elem* elem,
-                                 const std::vector<libMesh::NumericVector<double>*>& system_data,
-                                 double data_time,
-                                 void* ctx);
+/*!
+ * Struct allowing for the specification of system variables / gradients and the NumericVector used to evaluate
+ * those quantities.
+ */
+struct SystemData
+{
+    SystemData(const std::string& system_name = "",
+               const std::vector<int>& vars = std::vector<int>(),
+               const std::vector<int>& grad_vars = std::vector<int>(),
+               libMesh::NumericVector<double>* const system_vec = NULL)
+        : system_name(system_name), vars(vars), grad_vars(grad_vars), system_vec(system_vec)
+    {
+    }
 
-typedef void (*VectorMeshFcnPtr)(libMesh::VectorValue<double>& F,
-                                 const libMesh::TensorValue<double>& FF,
-                                 const libMesh::Point& X,
-                                 const libMesh::Point& s,
-                                 libMesh::Elem* elem,
-                                 const std::vector<libMesh::NumericVector<double>*>& system_data,
-                                 double data_time,
-                                 void* ctx);
+    std::string system_name;
+    std::vector<int> vars, grad_vars;
+    libMesh::NumericVector<double>* system_vec;
+};
 
-typedef void (*TensorMeshFcnPtr)(libMesh::TensorValue<double>& F,
-                                 const libMesh::TensorValue<double>& FF,
-                                 const libMesh::Point& X,
-                                 const libMesh::Point& s,
-                                 libMesh::Elem* elem,
-                                 const std::vector<libMesh::NumericVector<double>*>& system_data,
-                                 double data_time,
-                                 void* ctx);
+typedef void (*ScalarMeshFcnPtr)(
+    double& F,
+    const libMesh::TensorValue<double>& FF,
+    const libMesh::Point& x,
+    const libMesh::Point& X,
+    libMesh::Elem* elem,
+    const std::vector<const std::vector<double>*>& system_var_data,
+    const std::vector<const std::vector<libMesh::VectorValue<double> >*>& system_grad_var_data,
+    double data_time,
+    void* ctx);
 
-typedef void (*ScalarSurfaceFcnPtr)(double& F,
-                                    const libMesh::TensorValue<double>& FF,
-                                    const libMesh::Point& X,
-                                    const libMesh::Point& s,
-                                    libMesh::Elem* elem,
-                                    unsigned short int side,
-                                    const std::vector<libMesh::NumericVector<double>*>& system_data,
-                                    double data_time,
-                                    void* ctx);
+typedef void (*VectorMeshFcnPtr)(
+    libMesh::VectorValue<double>& F,
+    const libMesh::TensorValue<double>& FF,
+    const libMesh::Point& x,
+    const libMesh::Point& X,
+    libMesh::Elem* elem,
+    const std::vector<const std::vector<double>*>& system_var_data,
+    const std::vector<const std::vector<libMesh::VectorValue<double> >*>& system_grad_var_data,
+    double data_time,
+    void* ctx);
 
-typedef void (*VectorSurfaceFcnPtr)(libMesh::VectorValue<double>& F,
-                                    const libMesh::TensorValue<double>& FF,
-                                    const libMesh::Point& X,
-                                    const libMesh::Point& s,
-                                    libMesh::Elem* elem,
-                                    unsigned short int side,
-                                    const std::vector<libMesh::NumericVector<double>*>& system_data,
-                                    double data_time,
-                                    void* ctx);
+typedef void (*TensorMeshFcnPtr)(
+    libMesh::TensorValue<double>& F,
+    const libMesh::TensorValue<double>& FF,
+    const libMesh::Point& x,
+    const libMesh::Point& X,
+    libMesh::Elem* elem,
+    const std::vector<const std::vector<double>*>& system_var_data,
+    const std::vector<const std::vector<libMesh::VectorValue<double> >*>& system_grad_var_data,
+    double data_time,
+    void* ctx);
 
-typedef void (*TensorSurfaceFcnPtr)(libMesh::TensorValue<double>& F,
-                                    const libMesh::TensorValue<double>& FF,
-                                    const libMesh::Point& X,
-                                    const libMesh::Point& s,
-                                    libMesh::Elem* elem,
-                                    unsigned short int side,
-                                    const std::vector<libMesh::NumericVector<double>*>& system_data,
-                                    double data_time,
-                                    void* ctx);
+typedef void (*ScalarSurfaceFcnPtr)(
+    double& F,
+    const libMesh::TensorValue<double>& FF,
+    const libMesh::Point& x,
+    const libMesh::Point& X,
+    libMesh::Elem* elem,
+    unsigned short int side,
+    const std::vector<const std::vector<double>*>& system_var_data,
+    const std::vector<const std::vector<libMesh::VectorValue<double> >*>& system_grad_var_data,
+    double data_time,
+    void* ctx);
+
+typedef void (*VectorSurfaceFcnPtr)(
+    libMesh::VectorValue<double>& F,
+    const libMesh::TensorValue<double>& FF,
+    const libMesh::Point& x,
+    const libMesh::Point& X,
+    libMesh::Elem* elem,
+    unsigned short int side,
+    const std::vector<const std::vector<double>*>& system_var_data,
+    const std::vector<const std::vector<libMesh::VectorValue<double> >*>& system_grad_var_data,
+    double data_time,
+    void* ctx);
+
+typedef void (*TensorSurfaceFcnPtr)(
+    libMesh::TensorValue<double>& F,
+    const libMesh::TensorValue<double>& FF,
+    const libMesh::Point& x,
+    const libMesh::Point& X,
+    libMesh::Elem* elem,
+    unsigned short int side,
+    const std::vector<const std::vector<double>*>& system_var_data,
+    const std::vector<const std::vector<libMesh::VectorValue<double> >*>& system_grad_var_data,
+    double data_time,
+    void* ctx);
 
 template <class MultiArray, class Array>
 inline void
@@ -194,7 +225,7 @@ template <class MultiArray>
 inline void
 interpolate(double& U, const int qp, const MultiArray& U_node, const std::vector<std::vector<double> >& phi)
 {
-    const int n_nodes = U_node.shape()[0];
+    const int n_nodes = static_cast<int>(U_node.shape()[0]);
     U = 0.0;
     for (int k = 0; k < n_nodes; ++k)
     {
@@ -451,6 +482,7 @@ intersect_line_with_edge(std::vector<std::pair<double, libMesh::Point> >& t_vals
                          libMesh::Point r,
                          libMesh::VectorValue<double> q)
 {
+    static const double TOL = sqrt(std::numeric_limits<double>::epsilon());
     t_vals.resize(0);
     switch (elem->type())
     {
@@ -488,7 +520,7 @@ intersect_line_with_edge(std::vector<std::pair<double, libMesh::Point> >& t_vals
         const double u = -b / a;
 
         // Look for intersections within the element interior.
-        if (u >= -1.0 && u <= 1.0)
+        if (u >= -1.0 - TOL && u <= 1.0 + TOL)
         {
             double t;
             if (std::abs(q(0)) >= std::abs(q(1)))
@@ -558,7 +590,7 @@ intersect_line_with_edge(std::vector<std::pair<double, libMesh::Point> >& t_vals
         for (unsigned int k = 0; k < u_vals.size(); ++k)
         {
             double u = u_vals[k];
-            if (u >= -1.0 && u <= 1.0)
+            if (u >= -1.0 - TOL && u <= 1.0 + TOL)
             {
                 double t;
                 if (std::abs(q(0)) >= std::abs(q(1)))
@@ -595,6 +627,7 @@ intersect_line_with_face(std::vector<std::pair<double, libMesh::Point> >& t_vals
                          libMesh::Point r,
                          libMesh::VectorValue<double> q)
 {
+    static const double TOL = sqrt(std::numeric_limits<double>::epsilon());
     t_vals.resize(0);
     switch (elem->type())
     {
@@ -647,7 +680,7 @@ intersect_line_with_face(std::vector<std::pair<double, libMesh::Point> >& t_vals
             const double v = -(A00 * C2 - A10 * C1) / det;
 
             // Look for intersections within the element interior.
-            if (u >= 0.0 && v >= 0.0 && (u + v) <= 1.0)
+            if (u >= 0.0 - TOL && v >= 0.0 - TOL && (u + v) <= 1.0 + TOL)
             {
                 double t;
                 if (std::abs(q(0)) >= std::abs(q(1)) && std::abs(q(0)) >= std::abs(q(2)))
@@ -740,7 +773,7 @@ intersect_line_with_face(std::vector<std::pair<double, libMesh::Point> >& t_vals
         for (unsigned int k = 0; k < v_vals.size(); ++k)
         {
             double v = v_vals[k];
-            if (v >= 0.0 && v <= 1.0)
+            if (v >= 0.0 - TOL && v <= 1.0 + TOL)
             {
                 double u;
                 const double a = v * A2 + B2;
@@ -754,7 +787,7 @@ intersect_line_with_face(std::vector<std::pair<double, libMesh::Point> >& t_vals
                     u = (-v * C2 - D2) / a;
                 }
 
-                if (u >= 0.0 && u <= 1.0)
+                if (u >= 0.0 - TOL && u <= 1.0 + TOL)
                 {
                     double t;
                     if (std::abs(q(0)) >= std::abs(q(1)) && std::abs(q(0)) >= std::abs(q(2)))
