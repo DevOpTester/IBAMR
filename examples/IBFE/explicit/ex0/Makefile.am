@@ -23,6 +23,15 @@ main2d_SOURCES = $(SOURCES)
 #main3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
 #main3d_SOURCES = $(SOURCES)
 
+## Google Test Application
+check_PROGRAMS = test_ex0
+
+test_ex0_SOURCES = testex0.cpp $(SOURCES)
+test_ex0_CXXFLAGS = $(main2d_CXXFLAGS)
+test_ex0_LDADD = $(main2d_LDADD) -lgtest
+
+TESTS = $(check_PROGRAMS)
+
 examples: $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input2d $(PWD) ; \
@@ -33,3 +42,4 @@ clean-local:
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  rm -f $(builddir)/input2d ; \
 	fi ;
+check: $(check_PROGRAMS)

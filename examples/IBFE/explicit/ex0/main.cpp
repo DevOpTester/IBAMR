@@ -544,12 +544,14 @@ runExamples(int argc, char* argv[])
     return;
 } 
 
-int
-main(int argc, char* argv[])
+#ifndef MAIN
+#define MAIN
+int main(int argc, char* argv[])
 {
     runExamples(argc, argv);
     return 0;
 }// main
+#endif
 
 void
 output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
