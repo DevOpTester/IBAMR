@@ -123,8 +123,7 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-void
-runExamples(int argc, char* argv[])
+bool runExamples(int argc, char* argv[])
 {
     // Initialize libMesh, PETSc, MPI, and SAMRAI.
     LibMeshInit init(argc, argv);
@@ -541,17 +540,15 @@ runExamples(int argc, char* argv[])
     } // cleanup dynamically allocated objects prior to shutdown
 
     SAMRAIManager::shutdown();
-    return;
+    return true;
 } 
 
-#ifndef MAIN
-#define MAIN
-int main(int argc, char* argv[])
+// Run main from either example_main.cpp or test_main.cpp
+/*int main(int argc, char* argv[])
 {
     runExamples(argc, argv);
     return 0;
-}// main
-#endif
+}// main */
 
 void
 output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,

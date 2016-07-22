@@ -2,35 +2,33 @@
 include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
-SOURCES = main.cpp
+#EXAMPLE = example.cpp
+EXAMPLE_DRIVER = example_main.cpp
+TEST_DRIVER = test_main.cpp
+
 EXTRA_DIST = input2d input3d
 
 EXTRA_PROGRAMS =
 if LIBMESH_ENABLED
 if SAMRAI2D_ENABLED
-EXTRA_PROGRAMS += main2d
+EXTRA_PROGRAMS += main2d test2d
 endif
 #if SAMRAI3D_ENABLED
-#EXTRA_PROGRAMS += main3d
+#EXTRA_PROGRAMS += main3d test3d
 #endif
 endif
 
 main2d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2
 main2d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR2d_LIBS) $(IBAMR_LIBS)
-main2d_SOURCES = $(SOURCES)
+main2d_SOURCES = $(EXAMPLE_DRIVER)
 
 #main3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
 #main3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
 #main3d_SOURCES = $(SOURCES)
 
-## Google Test Application
-check_PROGRAMS = test_ex0
-
-test_ex0_SOURCES = testex0.cpp $(SOURCES)
-test_ex0_CXXFLAGS = $(main2d_CXXFLAGS)
-test_ex0_LDADD = $(main2d_LDADD) -lgtest
-
-TESTS = $(check_PROGRAMS)
+test2d_CXXFLAGS = $(main2d_CXXFLAGS)
+test2d_LDADD = $(main2d_LDADD) -lgtest
+test2d_SOURCES = $(TEST_DRIVER)
 
 examples: $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
@@ -42,4 +40,3 @@ clean-local:
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  rm -f $(builddir)/input2d ; \
 	fi ;
-check: $(check_PROGRAMS)

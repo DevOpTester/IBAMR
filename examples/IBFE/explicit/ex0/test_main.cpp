@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
-#include "main.cpp"
+#include "example.cpp"
+
+bool runExample(int, char*);
 
 TEST(DummyTest, OneIsOne) {
-  ASSERT_EQ(1.0, 1.0);
+    ASSERT_EQ(1.0, 1.0);
 }
 
 int main( int argc, char** argv ) {
