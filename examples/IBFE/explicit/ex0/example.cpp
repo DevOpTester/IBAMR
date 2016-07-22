@@ -110,7 +110,7 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
                  EquationSystems* equation_systems,
                  const int iteration_num,
                  const double loop_time,
-                 const string& data_dump_dirname);
+                const string& data_dump_dirname);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -123,7 +123,11 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-bool runExamples(int argc, char* argv[])
+
+extern int example_argc;
+extern char** example_argv;
+
+bool runExample(int argc, char** argv)
 {
     // Initialize libMesh, PETSc, MPI, and SAMRAI.
     LibMeshInit init(argc, argv);
