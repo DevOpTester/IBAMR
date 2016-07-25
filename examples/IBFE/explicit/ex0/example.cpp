@@ -547,13 +547,6 @@ bool runExample(int argc, char** argv)
     return true;
 } 
 
-// Run main from either example_main.cpp or test_main.cpp
-/*int main(int argc, char* argv[])
-{
-    runExamples(argc, argv);
-    return 0;
-}// main */
-
 void
 output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
             Pointer<INSHierarchyIntegrator> navier_stokes_integrator,
