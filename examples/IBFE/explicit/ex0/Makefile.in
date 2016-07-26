@@ -112,7 +112,7 @@ CONFIG_CLEAN_VPATH_FILES =
 @LIBMESH_ENABLED_TRUE@@SAMRAI2D_ENABLED_TRUE@am__EXEEXT_1 =  \
 @LIBMESH_ENABLED_TRUE@@SAMRAI2D_ENABLED_TRUE@	main2d$(EXEEXT) \
 @LIBMESH_ENABLED_TRUE@@SAMRAI2D_ENABLED_TRUE@	test2d$(EXEEXT)
-am__objects_1 = main2d-example_main.$(OBJEXT)
+am__objects_1 = main2d-ex0_main.$(OBJEXT)
 am_main2d_OBJECTS = $(am__objects_1)
 main2d_OBJECTS = $(am_main2d_OBJECTS)
 main2d_DEPENDENCIES = $(IBAMR2d_LIBS) $(IBAMR_LIBS)
@@ -483,9 +483,7 @@ IBAMR2d_LIBS = ${top_builddir}/lib/libIBAMR2d.a ${top_builddir}/ibtk/lib/libIBTK
 IBAMR3d_LIBS = ${top_builddir}/lib/libIBAMR3d.a ${top_builddir}/ibtk/lib/libIBTK3d.a
 pkg_includedir = $(includedir)/@PACKAGE@
 SUFFIXES = .f.m4
-
-#EXAMPLE = example.cpp
-EXAMPLE_DRIVER = example_main.cpp
+EXAMPLE_DRIVER = ex0_main.cpp
 TEST_DRIVER = test_main.cpp
 EXTRA_DIST = input2d input3d
 #if SAMRAI3D_ENABLED
@@ -499,7 +497,7 @@ main2d_SOURCES = $(EXAMPLE_DRIVER)
 #main3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
 #main3d_SOURCES = $(SOURCES)
 test2d_CXXFLAGS = $(main2d_CXXFLAGS)
-test2d_LDADD = $(main2d_LDADD) -lgtest
+test2d_LDADD = $(main2d_LDADD)
 test2d_SOURCES = $(TEST_DRIVER)
 all: all-am
 
@@ -551,7 +549,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main2d-example_main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main2d-ex0_main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test2d-test_main.Po@am__quote@
 
 .cpp.o:
@@ -578,19 +576,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
-main2d-example_main.o: example_main.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -MT main2d-example_main.o -MD -MP -MF $(DEPDIR)/main2d-example_main.Tpo -c -o main2d-example_main.o `test -f 'example_main.cpp' || echo '$(srcdir)/'`example_main.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/main2d-example_main.Tpo $(DEPDIR)/main2d-example_main.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='example_main.cpp' object='main2d-example_main.o' libtool=no @AMDEPBACKSLASH@
+main2d-ex0_main.o: ex0_main.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -MT main2d-ex0_main.o -MD -MP -MF $(DEPDIR)/main2d-ex0_main.Tpo -c -o main2d-ex0_main.o `test -f 'ex0_main.cpp' || echo '$(srcdir)/'`ex0_main.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/main2d-ex0_main.Tpo $(DEPDIR)/main2d-ex0_main.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ex0_main.cpp' object='main2d-ex0_main.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -c -o main2d-example_main.o `test -f 'example_main.cpp' || echo '$(srcdir)/'`example_main.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -c -o main2d-ex0_main.o `test -f 'ex0_main.cpp' || echo '$(srcdir)/'`ex0_main.cpp
 
-main2d-example_main.obj: example_main.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -MT main2d-example_main.obj -MD -MP -MF $(DEPDIR)/main2d-example_main.Tpo -c -o main2d-example_main.obj `if test -f 'example_main.cpp'; then $(CYGPATH_W) 'example_main.cpp'; else $(CYGPATH_W) '$(srcdir)/example_main.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/main2d-example_main.Tpo $(DEPDIR)/main2d-example_main.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='example_main.cpp' object='main2d-example_main.obj' libtool=no @AMDEPBACKSLASH@
+main2d-ex0_main.obj: ex0_main.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -MT main2d-ex0_main.obj -MD -MP -MF $(DEPDIR)/main2d-ex0_main.Tpo -c -o main2d-ex0_main.obj `if test -f 'ex0_main.cpp'; then $(CYGPATH_W) 'ex0_main.cpp'; else $(CYGPATH_W) '$(srcdir)/ex0_main.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/main2d-ex0_main.Tpo $(DEPDIR)/main2d-ex0_main.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ex0_main.cpp' object='main2d-ex0_main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -c -o main2d-example_main.obj `if test -f 'example_main.cpp'; then $(CYGPATH_W) 'example_main.cpp'; else $(CYGPATH_W) '$(srcdir)/example_main.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(main2d_CXXFLAGS) $(CXXFLAGS) -c -o main2d-ex0_main.obj `if test -f 'ex0_main.cpp'; then $(CYGPATH_W) 'ex0_main.cpp'; else $(CYGPATH_W) '$(srcdir)/ex0_main.cpp'; fi`
 
 test2d-test_main.o: test_main.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(test2d_CXXFLAGS) $(CXXFLAGS) -MT test2d-test_main.o -MD -MP -MF $(DEPDIR)/test2d-test_main.Tpo -c -o test2d-test_main.o `test -f 'test_main.cpp' || echo '$(srcdir)/'`test_main.cpp

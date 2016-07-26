@@ -1,4 +1,4 @@
-#include "example.cpp"
+#include "ex0.cpp"
 
 int example_argc;
 char** example_argv;

@@ -1,14 +1,10 @@
 #include <gtest/gtest.h>
-#include "ex0.cpp"
+#include "ex2.cpp"
 
 int example_argc;
 char** example_argv;
 bool ExampleDoesRun;
 bool runExample(int, char**);
-
-TEST(DummyTest, OneIsOne) {
-    ASSERT_EQ(1.0, 1.0);
-}
 
 TEST(ExampleDoesRun, Bool) {
     ExampleDoesRun = runExample(example_argc, example_argv);

@@ -2,8 +2,7 @@
 include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
-#EXAMPLE = example.cpp
-EXAMPLE_DRIVER = example_main.cpp
+EXAMPLE_DRIVER = ex0_main.cpp
 TEST_DRIVER = test_main.cpp
 
 EXTRA_DIST = input2d input3d
@@ -27,7 +26,7 @@ main2d_SOURCES = $(EXAMPLE_DRIVER)
 #main3d_SOURCES = $(SOURCES)
 
 test2d_CXXFLAGS = $(main2d_CXXFLAGS)
-test2d_LDADD = $(main2d_LDADD) -lgtest
+test2d_LDADD = $(main2d_LDADD)
 test2d_SOURCES = $(TEST_DRIVER)
 
 examples: $(EXTRA_PROGRAMS)
