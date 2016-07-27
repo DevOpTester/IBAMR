@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e 
+set -o pipefail
 ./configure \
   CFLAGS="-g -O1 -Wall" \
   CXXFLAGS="-g -O1 -Wall" \

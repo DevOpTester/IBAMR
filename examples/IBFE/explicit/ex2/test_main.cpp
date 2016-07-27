@@ -8,7 +8,7 @@ bool runExample(int, char**);
 
 TEST(ExampleDoesRun, Bool) {
     ExampleDoesRun = runExample(example_argc, example_argv);
-    ASSERT_EQ(ExampleDoesRun, true);
+    EXPECT_EQ(ExampleDoesRun, true);
 }
 
 int main( int argc, char** argv ) {

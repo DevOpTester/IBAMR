@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e 
+set -o pipefail
 for dir in ./*/
 do
     dir=${dir%*/}
