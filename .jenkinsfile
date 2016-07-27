@@ -7,7 +7,7 @@
   CXX=$HOME/linux/openmpi/1.10.2/bin/mpicxx \
   FC=$HOME/linux/openmpi/1.10.2/bin/mpif90 \
   CPPFLAGS="-DOMPI_SKIP_MPICXX" \
-  LDFLAGS="-lgtest"
+  LDFLAGS="-lgtest" \
   --with-hypre=$PETSC_DIR/$PETSC_ARCH \
   --with-samrai=$HOME/samrai/2.4.4/linux-g++-debug \
   --with-hdf5=$HOME/linux/hdf5/1.8.16 \
