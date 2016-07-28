@@ -3,13 +3,18 @@
 
 int example_argc;
 char** example_argv;
-bool ExampleDoesRun;
+bool ExampleRuns;
 bool runExample(int, char**);
 
-TEST(ExampleDoesRun, Bool) {
-    ExampleDoesRun = runExample(example_argc, example_argv);
-    EXPECT_EQ(ExampleDoesRun, true);
+TEST(IBFE_ex0, 2d) {
+    ExampleRuns = runExample(example_argc, example_argv);
+    EXPECT_EQ(ExampleRuns, true);
 }
+
+/*TEST(IBFE_ex0, 3d) {
+    ExampleRuns = runExample(example_argc, example_argv);
+    EXPECT_EQ(ExampleRuns, true);
+}*/
 
 int main( int argc, char** argv ) {
     testing::InitGoogleTest( &argc, argv ); 
