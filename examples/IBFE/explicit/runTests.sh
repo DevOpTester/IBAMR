@@ -18,7 +18,7 @@ do
     if [ -f "test3d" ];
     then
         echo "************Running "test3d"************"
-        ./test2d input3d --gtest_filter=*.3d
+        ./test3d input3d --gtest_filter=*.3d
     fi
     cd ..
 done
