@@ -1,43 +1,19 @@
 // physical parameters
-MU  = 1.0
+MU  = 0.01
 RHO = 1.0
 L   = 1.0
 
 // grid spacing parameters
-MAX_LEVELS = 1                                 // maximum number of levels in locally refined grid
+MAX_LEVELS = 3                                 // maximum number of levels in locally refined grid
 REF_RATIO  = 2                                 // refinement ratio between levels
-N = 128                                        // actual    number of grid cells on coarsest grid level
+N = 16                                         // actual    number of grid cells on coarsest grid level
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N       // effective number of grid cells on finest   grid level
 DX0 = L/N                                      // mesh width on coarsest grid level
 DX  = L/NFINEST                                // mesh width on finest   grid level
-MFAC = 4.0                                     // ratio of Lagrangian mesh width to Cartesian mesh width
-ELEM_TYPE = "QUAD9"                            // type of element to use for structure discretization
-CONVERGENCE_STUDY = FALSE                      // indicate whether we are performing a convergence study or not;
-                                               // if so, attempt to make "nested" structural meshes
-
-// problem parameters
-SMOOTH_CASE = FALSE
-
-VelocityInitialConditions {
-   function_0 = "0.0"
-   function_1 = "0.0"
-}
-
-PressureInitialConditions {
-   R = 0.25
-   w = 0.0625
-   mu = 1.0
-
-   PI = 3.14159265358979
-   p0_smooth = (mu*PI/(3*w))*(R^2 - (R+w)^3/R)
-   p0_sharp = mu*PI*R
-
-// smooth case
-// function = "if(sqrt((X0-0.5)^2 + (X1-0.5)^2) < R,(p0_smooth + (mu/R)),if(sqrt((X0-0.5)^2 + (X1-0.5)^2) < R+w,(p0_smooth + (mu/w)*(1/R)*(R+w-sqrt((X0-0.5)^2 + (X1-0.5)^2))),p0_smooth))"
-
-// sharp case
-   function = "if(sqrt((X0-0.5)^2 + (X1-0.5)^2) < R,(p0_sharp - mu/(R+w)),if(sqrt((X0-0.5)^2 + (X1-0.5)^2) < R+w,(p0_sharp + (mu/w)*R/(R+w)),p0_sharp)) + if(sqrt((X0-0.5)^2 + (X1-0.5)^2) < R,(p0_smooth + (mu/R)),if(sqrt((X0-0.5)^2 + (X1-0.5)^2) < R+w,(p0_smooth + (mu/w)*(1/R)*(R+w-sqrt((X0-0.5)^2 + (X1-0.5)^2))),p0_smooth))"
-}
+MFAC = 2.0                                     // ratio of Lagrangian mesh width to Cartesian mesh width
+ELEM_TYPE = "HEX8"                             // type of element to use for structure discretization
+PK1_DEV_QUAD_ORDER = "THIRD"
+PK1_DIL_QUAD_ORDER = "FIRST"
 
 // solver parameters
 IB_DELTA_FUNCTION          = "IB_4"            // the type of smoothed delta function to use for Lagrangian-Eulerian interaction
@@ -49,13 +25,13 @@ SOLVER_TYPE                = "STAGGERED"       // the fluid solver to use (STAGG
 CFL_MAX                    = 0.3               // maximum CFL number
 DT                         = 0.25*DX           // maximum timestep size
 START_TIME                 = 0.0e0             // initial simulation time
-END_TIME                   = 100*DT               // final simulation time
+END_TIME                   = 10*DT            // final simulation time
 GROW_DT                    = 2.0e0             // growth factor for timesteps
 NUM_CYCLES                 = 1                 // number of cycles of fixed-point iteration
 CONVECTIVE_TS_TYPE         = "ADAMS_BASHFORTH" // convective time stepping type
 CONVECTIVE_OP_TYPE         = "PPM"             // convective differencing discretization type
 CONVECTIVE_FORM            = "ADVECTIVE"       // how to compute the convective terms
-NORMALIZE_PRESSURE         = TRUE              // whether to explicitly force the pressure to have mean zero
+NORMALIZE_PRESSURE         = FALSE             // whether to explicitly force the pressure to have mean zero
 ERROR_ON_DT_CHANGE         = TRUE              // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = FALSE             // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                 // size of tag buffer used by grid generation algorithm
@@ -72,20 +48,26 @@ PROJECTION_METHOD_TYPE = "PRESSURE_UPDATE"
 SECOND_ORDER_PRESSURE_UPDATE = TRUE
 
 VelocityBcCoefs_0 {
-   acoef_function_0 = "1.0"
-   acoef_function_1 = "1.0"
-   acoef_function_2 = "1.0"
-   acoef_function_3 = "1.0"
+   acoef_function_0 = "0.0"
+   acoef_function_1 = "0.0"
+   acoef_function_2 = "0.0"
+   acoef_function_3 = "0.0"
+   acoef_function_4 = "0.0"
+   acoef_function_5 = "0.0"
 
-   bcoef_function_0 = "0.0"
-   bcoef_function_1 = "0.0"
-   bcoef_function_2 = "0.0"
-   bcoef_function_3 = "0.0"
+   bcoef_function_0 = "1.0"
+   bcoef_function_1 = "1.0"
+   bcoef_function_2 = "1.0"
+   bcoef_function_3 = "1.0"
+   bcoef_function_4 = "1.0"
+   bcoef_function_5 = "1.0"
 
-   gcoef_function_0 = "0.0"
-   gcoef_function_1 = "0.0"
+   gcoef_function_0 = "-1.0e-1"
+   gcoef_function_1 = " 1.0e-1"
    gcoef_function_2 = "0.0"
    gcoef_function_3 = "0.0"
+   gcoef_function_4 = "0.0"
+   gcoef_function_5 = "0.0"
 }
 
 VelocityBcCoefs_1 {
@@ -93,16 +75,45 @@ VelocityBcCoefs_1 {
    acoef_function_1 = "1.0"
    acoef_function_2 = "1.0"
    acoef_function_3 = "1.0"
+   acoef_function_4 = "1.0"
+   acoef_function_5 = "1.0"
 
    bcoef_function_0 = "0.0"
    bcoef_function_1 = "0.0"
    bcoef_function_2 = "0.0"
    bcoef_function_3 = "0.0"
+   bcoef_function_4 = "0.0"
+   bcoef_function_5 = "0.0"
 
    gcoef_function_0 = "0.0"
    gcoef_function_1 = "0.0"
    gcoef_function_2 = "0.0"
    gcoef_function_3 = "0.0"
+   gcoef_function_4 = "0.0"
+   gcoef_function_5 = "0.0"
+}
+
+VelocityBcCoefs_2 {
+   acoef_function_0 = "1.0"
+   acoef_function_1 = "1.0"
+   acoef_function_2 = "1.0"
+   acoef_function_3 = "1.0"
+   acoef_function_4 = "1.0"
+   acoef_function_5 = "1.0"
+
+   bcoef_function_0 = "0.0"
+   bcoef_function_1 = "0.0"
+   bcoef_function_2 = "0.0"
+   bcoef_function_3 = "0.0"
+   bcoef_function_4 = "0.0"
+   bcoef_function_5 = "0.0"
+
+   gcoef_function_0 = "0.0"
+   gcoef_function_1 = "0.0"
+   gcoef_function_2 = "0.0"
+   gcoef_function_3 = "0.0"
+   gcoef_function_4 = "0.0"
+   gcoef_function_5 = "0.0"
 }
 
 IBHierarchyIntegrator {
@@ -176,49 +187,51 @@ Main {
    solver_type = SOLVER_TYPE
 
 // log file parameters
-   log_file_name               = "IB2d.log"
+   log_file_name               = "IB3d.log"
    log_all_nodes               = FALSE
 
 // visualization dump parameters
    viz_writer                  = "VisIt","ExodusII"
-   viz_dump_interval           = int(END_TIME/(50*DT))
-   viz_dump_dirname            = "viz_IB2d"
+   viz_dump_interval           = NFINEST/4
+   viz_dump_dirname            = "viz_IB3d"
    visit_number_procs_per_file = 1
 
 // restart dump parameters
    restart_dump_interval       = 0
-   restart_dump_dirname        = "restart_IB2d"
+   restart_dump_dirname        = "restart_IB3d"
 
 // hierarchy data dump parameters
    data_dump_interval          = 0
-   data_dump_dirname           = "hier_data_IB2d"
+   data_dump_dirname           = "hier_data_IB3d"
 
 // timer dump parameters
    timer_dump_interval         = 0
 }
 
 CartesianGeometry {
-   domain_boxes = [ (0,0),(N - 1,N - 1) ]
-   x_lo = 0,0
-   x_up = L,L
-   periodic_dimension = 1,1
+   domain_boxes = [ (0,0,0),(2*N - 1,N - 1,N - 1) ]
+   x_lo = 0  ,0,0
+   x_up = 2*L,L,L
+   periodic_dimension = 0,0,0
 }
 
 GriddingAlgorithm {
    max_levels = MAX_LEVELS
    ratio_to_coarser {
-      level_1 = REF_RATIO,REF_RATIO
-      level_2 = REF_RATIO,REF_RATIO
-      level_3 = REF_RATIO,REF_RATIO
-      level_4 = REF_RATIO,REF_RATIO
-      level_5 = REF_RATIO,REF_RATIO
+      level_1 = REF_RATIO,REF_RATIO,REF_RATIO
+      level_2 = REF_RATIO,REF_RATIO,REF_RATIO
+      level_3 = REF_RATIO,REF_RATIO,REF_RATIO
+      level_4 = REF_RATIO,REF_RATIO,REF_RATIO
+      level_5 = REF_RATIO,REF_RATIO,REF_RATIO
    }
    largest_patch_size {
-      level_0 = 512,512  // all finer levels will use same values as level_0
+      level_0 = 512,512,512  // all finer levels will use same values as level_0
    }
+
    smallest_patch_size {
-      level_0 =   8,  8  // all finer levels will use same values as level_0
+      level_0 =   8,  8,  8  // all finer levels will use same values as level_0
    }
+
    efficiency_tolerance = 0.85e0  // min % of tag cells in new patch level
    combine_efficiency   = 0.85e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
 }
