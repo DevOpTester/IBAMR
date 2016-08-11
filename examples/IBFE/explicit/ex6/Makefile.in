@@ -484,7 +484,7 @@ pkg_includedir = $(includedir)/@PACKAGE@
 SUFFIXES = .f.m4
 EXAMPLE_DRIVER = ex6_main.cpp
 TEST_DRIVER = test_main.cpp
-EXTRA_DIST = input2d input3d
+EXTRA_DIST = input2d input2d.test
 main2d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2
 main2d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR2d_LIBS) $(IBAMR_LIBS)
 main2d_SOURCES = $(EXAMPLE_DRIVER)
@@ -810,13 +810,13 @@ uninstall-am:
 
 examples: $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  cp -f $(srcdir)/input2d $(PWD) ; \
+	  cp -f $(srcdir)/input* $(PWD) ; \
 	fi ;
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  rm -f $(builddir)/input2d ; \
+	  rm -f $(builddir)/input* ; \
 	fi ;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

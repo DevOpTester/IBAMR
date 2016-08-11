@@ -5,7 +5,7 @@ include $(top_srcdir)/config/Make-rules
 EXAMPLE_DRIVER = ex0_main.cpp
 TEST_DRIVER = test_main.cpp
 
-EXTRA_DIST = input2d input3d
+EXTRA_DIST = input2d input2d.test
 
 EXTRA_PROGRAMS =
 if LIBMESH_ENABLED
@@ -31,11 +31,11 @@ test2d_SOURCES = $(TEST_DRIVER)
 
 examples: $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  cp -f $(srcdir)/input2d $(PWD) ; \
+	  cp -f $(srcdir)/input* $(PWD) ; \
 	fi ;
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  rm -f $(builddir)/input2d ; \
+	  rm -f $(builddir)/input* ; \
 	fi ;

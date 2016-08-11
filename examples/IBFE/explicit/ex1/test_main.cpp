@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ex0.cpp"
+#include "ex1.cpp"
 
 int example_argc;
 char** example_argv;
