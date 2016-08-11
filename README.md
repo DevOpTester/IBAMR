@@ -1,4 +1,4 @@
-[![Build Status](https://boycegvm01.castle.unc.edu/buildStatus/icon?job=IBAMR/ibamr_integration)](https://boycegvm01.castle.unc.edu/job/IBAMR/ibamr_integration)
+[![Build Status](https://boycegvm01.castle.unc.edu/buildStatus/icon?job=IBAMR/ibamr_integration)](https://boycegvm01.castle.unc.edu/job/IBAMR/job/ibamr_integration/)
 
 IBAMR
 =====
