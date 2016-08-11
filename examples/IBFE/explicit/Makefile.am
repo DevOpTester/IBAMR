@@ -4,6 +4,9 @@ SUBDIRS = ex0 ex1 ex2 ex3 ex4 ex5 ex6 ex7 ex8
 
 ## Standard make targets.
 examples:
+	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
+	  cp -f $(srcdir)/runTests.sh $(PWD) ; \
+	fi ;
 	@(cd ex0 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex1 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex2 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
@@ -13,3 +16,4 @@ examples:
 	@(cd ex6 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex7 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex8 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
+

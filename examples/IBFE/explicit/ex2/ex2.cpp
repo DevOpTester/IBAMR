@@ -462,7 +462,7 @@ runExample(int argc, char* argv[])
     } // cleanup dynamically allocated objects prior to shutdown
 
     SAMRAIManager::shutdown();
-    return 0;
+    return true;
 }
 
 void
