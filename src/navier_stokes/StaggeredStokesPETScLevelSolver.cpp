@@ -182,16 +182,6 @@ StaggeredStokesPETScLevelSolver::initializeSolverStateSpecialized(const SAMRAIVe
     }
     d_petsc_pc = d_petsc_mat;
 
-#if 0
-    std::ostringstream os;
-    os << "system_mat_level_" << d_level_num << ".m";
-    PetscViewer mat_viewer;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, os.str().c_str(), &mat_viewer);
-    PetscViewerPushFormat(mat_viewer, PETSC_VIEWER_ASCII_MATLAB);
-    MatView(d_petsc_mat, mat_viewer);
-    PetscViewerDestroy(&mat_viewer);
-#endif
-
     // Construct subdomains for ASM and MSM preconditioner.
     StaggeredStokesPETScMatUtilities::constructPatchLevelASMSubdomains(d_overlap_is,
                                                                        d_nonoverlap_is,
@@ -202,24 +192,6 @@ StaggeredStokesPETScLevelSolver::initializeSolverStateSpecialized(const SAMRAIVe
                                                                        d_p_dof_index_idx,
                                                                        d_level,
                                                                        d_cf_boundary);
-    StaggeredStokesPETScMatUtilities::constructPatchLevelMSMSubdomains(d_subdomain_row_is,
-                                                                       d_subdomain_col_is,
-                                                                       d_box_size,
-                                                                       d_overlap_size,
-                                                                       d_num_dofs_per_proc,
-                                                                       d_u_dof_index_idx,
-                                                                       d_p_dof_index_idx,
-                                                                       d_level);
-    StaggeredStokesPETScMatUtilities::constructPatchLevelMSMSubdomains(d_red_subdomain_row_is,
-                                                                       d_red_subdomain_col_is,
-                                                                       d_black_subdomain_row_is,
-                                                                       d_black_subdomain_col_is,
-                                                                       d_box_size,
-                                                                       d_overlap_size,
-                                                                       d_num_dofs_per_proc,
-                                                                       d_u_dof_index_idx,
-                                                                       d_p_dof_index_idx,
-                                                                       d_level);
 
     // Set IS'es for field split preconditioner.
     StaggeredStokesPETScMatUtilities::constructPatchLevelFields(
