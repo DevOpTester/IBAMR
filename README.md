@@ -1,4 +1,4 @@
-*testing Jenkins webhook*
+[![Build Status](https://boycegvm01.castle.unc.edu/buildStatus/icon?job=IBAMR/ibamr_integration)](https://boycegvm01.castle.unc.edu/job/IBAMR/ibamr_integration)
 
 IBAMR
 =====
