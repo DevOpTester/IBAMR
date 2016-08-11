@@ -1,4 +1,16 @@
+Markdown (with view)
+
+protected
+[![Build Status](https://boycegvm01.castle.unc.edu/job/IBAMR/job/ibamr_integration/badge/icon)](https://boycegvm01.castle.unc.edu/job/IBAMR/job/ibamr_integration/?style=plastic)
+unprotected
 [![Build Status](https://boycegvm01.castle.unc.edu/buildStatus/icon?job=IBAMR/ibamr_integration)](https://boycegvm01.castle.unc.edu/job/IBAMR/job/ibamr_integration/)
+Markdown (without view)
+
+protected
+[![Build Status](https://boycegvm01.castle.unc.edu/job/IBAMR/ibamr_integration/badge/icon)](https://boycegvm01.castle.unc.edu/job/IBAMR/ibamr_integration)
+unprotected
+[![Build Status](https://boycegvm01.castle.unc.edu/buildStatus/icon?job=IBAMR/ibamr_integration)](https://boycegvm01.castle.unc.edu/job/IBAMR/ibamr_integration)
+
 
 IBAMR
 =====
