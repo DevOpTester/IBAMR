@@ -35,7 +35,7 @@ examples: $(EXTRA_PROGRAMS)
 	fi ;
 
 clean-local:
-	rm -f $(EXTRA_PROGRAMS)
+	rm -f $(EXTRA_PROGRAMS) $(EXTRA_TEST)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  rm -f $(builddir)/input* ; \
 	fi ;

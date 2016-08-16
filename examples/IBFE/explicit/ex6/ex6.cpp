@@ -160,6 +160,9 @@ void postprocess_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
+extern int example_argc;
+extern char** example_argv;
+
 bool
 runExample(int argc, char* argv[])
 {
