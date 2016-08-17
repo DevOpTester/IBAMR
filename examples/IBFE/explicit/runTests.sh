@@ -6,10 +6,7 @@ for dir in ./*/
 do
     dir=${dir%*/}
     cd ${dir##*/}
-    if [ -f "test_main.cpp" ];  
-    then
-        make examples
-    fi
+    make gtest
     if [ -f "test2d" ];
     then
         echo "************Running "test2d"************"
