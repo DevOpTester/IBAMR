@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e 
+set -e
 set -o pipefail
 ./configure \
   CFLAGS="-g -O1 -Wall" \
@@ -20,6 +20,5 @@ set -o pipefail
   --with-libmesh=$HOME/linux/libmesh/1.0.0/1.0.0-debug \
   --with-libmesh-method=dbg
 make -kj4 lib
-make -kj4 examples
 cd examples/navier_stokes/
 make gtest
