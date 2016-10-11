@@ -69,16 +69,18 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-double
-run_example(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[], std::vector<double>& u_err, std::vector<double>& p_err)
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
-    // create variable to store u error in to aid in testing
-    double uMax_norm;
+    // resize u_err and p_err vectors to hold error data
+    u_err.resize(3);
+    p_err.resize(3);
+    
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -312,7 +314,9 @@ run_example(int argc, char* argv[])
                  << "  L2-norm:  " << hier_cc_data_ops.L2Norm(u_idx, wgt_cc_idx) << "\n"
                  << "  max-norm: " << hier_cc_data_ops.maxNorm(u_idx, wgt_cc_idx) << "\n";
 
-                 uMax_norm = hier_cc_data_ops.maxNorm(u_idx, wgt_cc_idx);
+                 u_err[0] = hier_cc_data_ops.L1Norm(u_idx, wgt_sc_idx);
+                 u_err[1] = hier_cc_data_ops.L2Norm(u_idx, wgt_sc_idx);
+                 u_err[2] = hier_cc_data_ops.maxNorm(u_idx, wgt_sc_idx);       
         }
 
         Pointer<SideVariable<NDIM, double> > u_sc_var = u_var;
@@ -325,7 +329,9 @@ run_example(int argc, char* argv[])
                  << "  L2-norm:  " << hier_sc_data_ops.L2Norm(u_idx, wgt_sc_idx) << "\n"
                  << "  max-norm: " << hier_sc_data_ops.maxNorm(u_idx, wgt_sc_idx) << "\n";
 
-                 uMax_norm = hier_sc_data_ops.maxNorm(u_idx, wgt_sc_idx);
+                 u_err[0] = hier_sc_data_ops.L1Norm(u_idx, wgt_sc_idx);
+                 u_err[1] = hier_sc_data_ops.L2Norm(u_idx, wgt_sc_idx);
+                 u_err[2] = hier_sc_data_ops.maxNorm(u_idx, wgt_sc_idx);
         }
 
 
@@ -337,9 +343,10 @@ run_example(int argc, char* argv[])
              << "  max-norm: " << hier_cc_data_ops.maxNorm(p_idx, wgt_cc_idx) << "\n"
              << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
 
-            //pL1_norm  = hier_cc_data_ops.L1Norm(p_idx, wgt_cc_idx);
-            //pL2_norm  = hier_cc_data_ops.L2Norm(p_idx, wgt_cc_idx);
-            //pMax_norm = hier_cc_data_ops.maxNorm(p_idx, wgt_cc_idx);
+            p_err[0]  = hier_cc_data_ops.L1Norm(p_idx, wgt_cc_idx);
+            p_err[1]  = hier_cc_data_ops.L2Norm(p_idx, wgt_cc_idx);
+            p_err[2]  = hier_cc_data_ops.maxNorm(p_idx, wgt_cc_idx);
+        
         if (dump_viz_data && uses_visit)
         {
             time_integrator->setupPlotData();
@@ -353,7 +360,7 @@ run_example(int argc, char* argv[])
     //double test_results[2] = {uMax_norm, pMax_norm};
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return uMax_norm;
+    return true;
 } // run_example
 
 void
