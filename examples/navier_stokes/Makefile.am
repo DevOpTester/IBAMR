@@ -20,4 +20,4 @@ gtest:
 	@(cd ex3 && make gtest) || exit 1;
 	@(cd ex4 && make gtest) || exit 1;
 	@(cd ex5 && make gtest) || exit 1;
-	@(cd ex6 && make gtest) || exit 1;
+
