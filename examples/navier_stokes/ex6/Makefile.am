@@ -32,7 +32,7 @@ gtest: $(GTESTS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	fi ;
-	./test2d input2d.test --gtest_filter=*.2d
+##	./test2d input2d.test --gtest_filter=*.2d
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
