@@ -64,7 +64,7 @@
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-double
+bool
 run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
@@ -72,8 +72,7 @@ run_example(int argc, char* argv[])
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
-    // Initialize variable to store error in u to aid in testing
-    double uMax_norm = 1.0;
+    // Initialize variable to store error in u to aid in testing 
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -361,7 +360,7 @@ run_example(int argc, char* argv[])
                  << "  L1-norm:  " << hier_cc_data_ops.L1Norm(u_idx, wgt_cc_idx) << "\n"
                  << "  L2-norm:  " << hier_cc_data_ops.L2Norm(u_idx, wgt_cc_idx) << "\n"
                  << "  max-norm: " << hier_cc_data_ops.maxNorm(u_idx, wgt_cc_idx) << "\n";
-                 uMax_norm = hier_cc_data_ops.maxNorm(u_idx, wgt_cc_idx); 
+                
         }
 
         Pointer<SideVariable<NDIM, double> > u_sc_var = u_var;
@@ -372,7 +371,7 @@ run_example(int argc, char* argv[])
                  << "  L1-norm:  " << hier_sc_data_ops.L1Norm(u_idx, wgt_sc_idx) << "\n"
                  << "  L2-norm:  " << hier_sc_data_ops.L2Norm(u_idx, wgt_sc_idx) << "\n"
                  << "  max-norm: " << hier_sc_data_ops.maxNorm(u_idx, wgt_sc_idx) << "\n";
-                 uMax_norm = hier_sc_data_ops.maxNorm(u_idx, wgt_sc_idx); 
+                
         }
 
         hier_cc_data_ops.subtract(p_idx, p_idx, p_cloned_idx);
@@ -402,5 +401,5 @@ run_example(int argc, char* argv[])
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return uMax_norm;
+    return true;
 } // run_example
