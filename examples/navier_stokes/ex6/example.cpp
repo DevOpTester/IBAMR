@@ -42,10 +42,11 @@
 #include <StandardTagAndInitialize.h>
 
 // Headers for application-specific algorithm/data structure objects
-#include <ibamr/AdvDiffPredictorCorrectorHierarchyIntegrator.h>
 #include <ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h>
-#include <ibamr/INSCollocatedHierarchyIntegrator.h>
+#include <ibamr/AdvDiffStochasticForcing.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
+#include <ibamr/INSStaggeredStochasticForcing.h>
+#include <ibamr/RNG.h>
 #include <ibtk/AppInitializer.h>
 #include <ibtk/muParserCartGridFunction.h>
 #include <ibtk/muParserRobinBcCoefs.h>
@@ -67,8 +68,8 @@
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
@@ -101,49 +102,13 @@ main(int argc, char* argv[])
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
-        Pointer<INSHierarchyIntegrator> time_integrator;
-        const string ins_solver_type = main_db->getStringWithDefault("ins_solver_type", "STAGGERED");
-        if (ins_solver_type == "STAGGERED")
-        {
-            time_integrator = new INSStaggeredHierarchyIntegrator(
-                "INSStaggeredHierarchyIntegrator",
-                app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
-        }
-        else if (ins_solver_type == "COLLOCATED")
-        {
-            time_integrator = new INSCollocatedHierarchyIntegrator(
-                "INSCollocatedHierarchyIntegrator",
-                app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
-        }
-        else
-        {
-            TBOX_ERROR("Unsupported solver type: " << ins_solver_type << "\n"
-                                                   << "Valid options are: COLLOCATED, STAGGERED");
-        }
-        Pointer<AdvDiffHierarchyIntegrator> adv_diff_integrator;
-        const string adv_diff_solver_type =
-            main_db->getStringWithDefault("adv_diff_solver_type", "PREDICTOR_CORRECTOR");
-        if (adv_diff_solver_type == "PREDICTOR_CORRECTOR")
-        {
-            Pointer<AdvectorExplicitPredictorPatchOps> predictor = new AdvectorExplicitPredictorPatchOps(
-                "AdvectorExplicitPredictorPatchOps",
-                app_initializer->getComponentDatabase("AdvectorExplicitPredictorPatchOps"));
-            adv_diff_integrator = new AdvDiffPredictorCorrectorHierarchyIntegrator(
-                "AdvDiffPredictorCorrectorHierarchyIntegrator",
-                app_initializer->getComponentDatabase("AdvDiffPredictorCorrectorHierarchyIntegrator"),
-                predictor);
-        }
-        else if (adv_diff_solver_type == "SEMI_IMPLICIT")
-        {
-            adv_diff_integrator = new AdvDiffSemiImplicitHierarchyIntegrator(
+        Pointer<INSStaggeredHierarchyIntegrator> time_integrator = new INSStaggeredHierarchyIntegrator(
+            "INSStaggeredHierarchyIntegrator",
+            app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
+        Pointer<AdvDiffSemiImplicitHierarchyIntegrator> adv_diff_integrator =
+            new AdvDiffSemiImplicitHierarchyIntegrator(
                 "AdvDiffSemiImplicitHierarchyIntegrator",
                 app_initializer->getComponentDatabase("AdvDiffSemiImplicitHierarchyIntegrator"));
-        }
-        else
-        {
-            TBOX_ERROR("Unsupported solver type: " << adv_diff_solver_type << "\n"
-                                                   << "Valid options are: PREDICTOR_CORRECTOR, SEMI_IMPLICIT");
-        }
         time_integrator->registerAdvDiffHierarchyIntegrator(adv_diff_integrator);
         Pointer<CartesianGridGeometry<NDIM> > grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
@@ -179,10 +144,23 @@ main(int argc, char* argv[])
             adv_diff_integrator->setPhysicalBcCoef(T_var, T_bc_coef);
         }
         adv_diff_integrator->setAdvectionVelocity(T_var, time_integrator->getAdvectionVelocityVariable());
+        Pointer<CellVariable<NDIM, double> > F_T_var = new CellVariable<NDIM, double>("F_T");
+        adv_diff_integrator->registerSourceTerm(F_T_var);
+        adv_diff_integrator->setSourceTermFunction(
+            F_T_var,
+            new AdvDiffStochasticForcing("AdvDiffStochasticForcing",
+                                         app_initializer->getComponentDatabase("TemperatureStochasticForcing"),
+                                         T_var,
+                                         adv_diff_integrator));
+        adv_diff_integrator->setSourceTerm(T_var, F_T_var);
 
         // Set up the fluid solver.
         time_integrator->registerBodyForceFunction(
             new BoussinesqForcing(T_var, adv_diff_integrator, input_db->getDouble("GAMMA")));
+        time_integrator->registerBodyForceFunction(
+            new INSStaggeredStochasticForcing("INSStaggeredStochasticForcing",
+                                              app_initializer->getComponentDatabase("VelocityStochasticForcing"),
+                                              time_integrator));
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM);
         for (unsigned int d = 0; d < NDIM; ++d) u_bc_coefs[d] = NULL;
         if (!periodic_domain)
@@ -200,6 +178,18 @@ main(int argc, char* argv[])
             }
             time_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
         }
+
+        // Seed the random number generator.
+        int seed = 0;
+        if (input_db->keyExists("SEED"))
+        {
+            seed = input_db->getInteger("SEED");
+        }
+        else
+        {
+            TBOX_ERROR("Key data `seed' not found in input.");
+        }
+        RNG::parallel_seed(seed);
 
         // Set up visualization plot file writers.
         Pointer<VisItDataWriter<NDIM> > visit_data_writer = app_initializer->getVisItDataWriter();
@@ -282,5 +272,5 @@ main(int argc, char* argv[])
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
-} // main
+    return true;
+} // run_example
