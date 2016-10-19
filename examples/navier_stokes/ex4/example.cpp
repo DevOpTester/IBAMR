@@ -42,20 +42,16 @@
 #include <StandardTagAndInitialize.h>
 
 // Headers for application-specific algorithm/data structure objects
+#include <ibamr/AdvDiffPredictorCorrectorHierarchyIntegrator.h>
 #include <ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h>
-#include <ibamr/AdvDiffStochasticForcing.h>
+#include <ibamr/INSCollocatedHierarchyIntegrator.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
-#include <ibamr/INSStaggeredStochasticForcing.h>
-#include <ibamr/RNG.h>
 #include <ibtk/AppInitializer.h>
 #include <ibtk/muParserCartGridFunction.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
-
-// Application objects
-#include "BoussinesqForcing.h"
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -68,14 +64,15 @@
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
+    // Initialize variable to store error in u to aid in testing 
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -102,17 +99,51 @@ main(int argc, char* argv[])
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
-        Pointer<INSStaggeredHierarchyIntegrator> time_integrator = new INSStaggeredHierarchyIntegrator(
-            "INSStaggeredHierarchyIntegrator",
-            app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
-        Pointer<AdvDiffSemiImplicitHierarchyIntegrator> adv_diff_integrator =
-            new AdvDiffSemiImplicitHierarchyIntegrator(
+        Pointer<INSHierarchyIntegrator> time_integrator;
+        const string ins_solver_type = main_db->getStringWithDefault("ins_solver_type", "STAGGERED");
+        if (ins_solver_type == "STAGGERED")
+        {
+            time_integrator = new INSStaggeredHierarchyIntegrator(
+                "INSStaggeredHierarchyIntegrator",
+                app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
+        }
+        else if (ins_solver_type == "COLLOCATED")
+        {
+            time_integrator = new INSCollocatedHierarchyIntegrator(
+                "INSCollocatedHierarchyIntegrator",
+                app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
+        }
+        else
+        {
+            TBOX_ERROR("Unsupported solver type: " << ins_solver_type << "\n"
+                                                   << "Valid options are: COLLOCATED, STAGGERED");
+        }
+        Pointer<AdvDiffHierarchyIntegrator> adv_diff_integrator;
+        const string adv_diff_solver_type = main_db->getStringWithDefault("adv_diff_solver_type", "GODUNOV");
+        if (adv_diff_solver_type == "GODUNOV")
+        {
+            Pointer<AdvectorExplicitPredictorPatchOps> predictor = new AdvectorExplicitPredictorPatchOps(
+                "AdvectorExplicitPredictorPatchOps",
+                app_initializer->getComponentDatabase("AdvectorExplicitPredictorPatchOps"));
+            adv_diff_integrator = new AdvDiffPredictorCorrectorHierarchyIntegrator(
+                "AdvDiffPredictorCorrectorHierarchyIntegrator",
+                app_initializer->getComponentDatabase("AdvDiffPredictorCorrectorHierarchyIntegrator"),
+                predictor);
+        }
+        else if (adv_diff_solver_type == "SEMI_IMPLICIT")
+        {
+            adv_diff_integrator = new AdvDiffSemiImplicitHierarchyIntegrator(
                 "AdvDiffSemiImplicitHierarchyIntegrator",
                 app_initializer->getComponentDatabase("AdvDiffSemiImplicitHierarchyIntegrator"));
+        }
+        else
+        {
+            TBOX_ERROR("Unsupported solver type: " << adv_diff_solver_type << "\n"
+                                                   << "Valid options are: GODUNOV, SEMI_IMPLICIT");
+        }
         time_integrator->registerAdvDiffHierarchyIntegrator(adv_diff_integrator);
         Pointer<CartesianGridGeometry<NDIM> > grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
-        const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
         Pointer<PatchHierarchy<NDIM> > patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM> > error_detector =
             new StandardTagAndInitialize<NDIM>("StandardTagAndInitialize",
@@ -128,42 +159,24 @@ main(int argc, char* argv[])
                                         box_generator,
                                         load_balancer);
 
-        // Setup the advected and diffused quantity.
-        Pointer<CellVariable<NDIM, double> > T_var = new CellVariable<NDIM, double>("T");
-        adv_diff_integrator->registerTransportedQuantity(T_var);
-        adv_diff_integrator->setDiffusionCoefficient(T_var, input_db->getDouble("KAPPA"));
-        adv_diff_integrator->setInitialConditions(
-            T_var,
-            new muParserCartGridFunction(
-                "T_init", app_initializer->getComponentDatabase("TemperatureInitialConditions"), grid_geometry));
-        RobinBcCoefStrategy<NDIM>* T_bc_coef = NULL;
-        if (!periodic_domain)
-        {
-            T_bc_coef = new muParserRobinBcCoefs(
-                "T_bc_coef", app_initializer->getComponentDatabase("TemperatureBcCoefs"), grid_geometry);
-            adv_diff_integrator->setPhysicalBcCoef(T_var, T_bc_coef);
-        }
-        adv_diff_integrator->setAdvectionVelocity(T_var, time_integrator->getAdvectionVelocityVariable());
-        Pointer<CellVariable<NDIM, double> > F_T_var = new CellVariable<NDIM, double>("F_T");
-        adv_diff_integrator->registerSourceTerm(F_T_var);
-        adv_diff_integrator->setSourceTermFunction(
-            F_T_var,
-            new AdvDiffStochasticForcing("AdvDiffStochasticForcing",
-                                         app_initializer->getComponentDatabase("TemperatureStochasticForcing"),
-                                         T_var,
-                                         adv_diff_integrator));
-        adv_diff_integrator->setSourceTerm(T_var, F_T_var);
-
         // Set up the fluid solver.
-        time_integrator->registerBodyForceFunction(
-            new BoussinesqForcing(T_var, adv_diff_integrator, input_db->getDouble("GAMMA")));
-        time_integrator->registerBodyForceFunction(
-            new INSStaggeredStochasticForcing("INSStaggeredStochasticForcing",
-                                              app_initializer->getComponentDatabase("VelocityStochasticForcing"),
-                                              time_integrator));
+        Pointer<CartGridFunction> u_init = new muParserCartGridFunction(
+            "u_init", app_initializer->getComponentDatabase("VelocityInitialConditions"), grid_geometry);
+        time_integrator->registerVelocityInitialConditions(u_init);
+        Pointer<CartGridFunction> p_init = new muParserCartGridFunction(
+            "p_init", app_initializer->getComponentDatabase("PressureInitialConditions"), grid_geometry);
+        time_integrator->registerPressureInitialConditions(p_init);
+
+        const IntVector<NDIM>& periodic_shift = grid_geometry->getPeriodicShift();
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM);
-        for (unsigned int d = 0; d < NDIM; ++d) u_bc_coefs[d] = NULL;
-        if (!periodic_domain)
+        if (periodic_shift.min() > 0)
+        {
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                u_bc_coefs[d] = NULL;
+            }
+        }
+        else
         {
             for (unsigned int d = 0; d < NDIM; ++d)
             {
@@ -179,17 +192,56 @@ main(int argc, char* argv[])
             time_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
         }
 
-        // Seed the random number generator.
-        int seed = 0;
-        if (input_db->keyExists("SEED"))
+        if (input_db->keyExists("ForcingFunction"))
         {
-            seed = input_db->getInteger("SEED");
+            Pointer<CartGridFunction> f_fcn = new muParserCartGridFunction(
+                "f_fcn", app_initializer->getComponentDatabase("ForcingFunction"), grid_geometry);
+            time_integrator->registerBodyForceFunction(f_fcn);
+        }
+
+        // Setup the advected and diffused quantity.
+        Pointer<CellVariable<NDIM, double> > U_adv_diff_var = new CellVariable<NDIM, double>("U_adv_diff", NDIM);
+        adv_diff_integrator->registerTransportedQuantity(U_adv_diff_var);
+        adv_diff_integrator->setDiffusionCoefficient(U_adv_diff_var,
+                                                     input_db->getDouble("MU") / input_db->getDouble("RHO"));
+        adv_diff_integrator->setInitialConditions(U_adv_diff_var, u_init);
+
+        Pointer<FaceVariable<NDIM, double> > u_adv_var = time_integrator->getAdvectionVelocityVariable();
+        adv_diff_integrator->setAdvectionVelocity(U_adv_diff_var, u_adv_var);
+
+        vector<RobinBcCoefStrategy<NDIM>*> U_adv_diff_bc_coefs(NDIM);
+        if (periodic_shift.min() > 0)
+        {
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                U_adv_diff_bc_coefs[d] = NULL;
+            }
         }
         else
         {
-            TBOX_ERROR("Key data `seed' not found in input.");
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                ostringstream bc_coefs_name_stream;
+                bc_coefs_name_stream << "U_adv_diff_bc_coefs_" << d;
+                const string bc_coefs_name = bc_coefs_name_stream.str();
+                ostringstream bc_coefs_db_name_stream;
+                bc_coefs_db_name_stream << "AdvDiffBcCoefs_" << d;
+                const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
+                U_adv_diff_bc_coefs[d] = new muParserRobinBcCoefs(
+                    bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
+            }
+            adv_diff_integrator->setPhysicalBcCoefs(U_adv_diff_var, U_adv_diff_bc_coefs);
         }
-        RNG::parallel_seed(seed);
+
+        if (input_db->keyExists("AdvDiffForcingFunction"))
+        {
+            Pointer<CellVariable<NDIM, double> > F_adv_diff_var = new CellVariable<NDIM, double>("F_adv_diff_", NDIM);
+            Pointer<CartGridFunction> F_adv_diff_fcn = new muParserCartGridFunction(
+                "F_adv_diff_fcn", app_initializer->getComponentDatabase("AdvDiffForcingFunction"), grid_geometry);
+            adv_diff_integrator->registerSourceTerm(F_adv_diff_var);
+            adv_diff_integrator->setSourceTermFunction(F_adv_diff_var, F_adv_diff_fcn);
+            adv_diff_integrator->setSourceTerm(U_adv_diff_var, F_adv_diff_var);
+        }
 
         // Set up visualization plot file writers.
         Pointer<VisItDataWriter<NDIM> > visit_data_writer = app_initializer->getVisItDataWriter();
@@ -264,13 +316,90 @@ main(int argc, char* argv[])
             }
         }
 
+        // Determine the accuracy of the computed solution.
+        pout << "\n"
+             << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+             << "Computing error norms.\n\n";
+
+        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
+
+        const Pointer<Variable<NDIM> > u_var = time_integrator->getVelocityVariable();
+        const Pointer<Variable<NDIM> > p_var = time_integrator->getPressureVariable();
+        const int u_idx = var_db->mapVariableAndContextToIndex(u_var, time_integrator->getCurrentContext());
+        const int u_cloned_idx = var_db->registerClonedPatchDataIndex(u_var, u_idx);
+        const int p_idx = var_db->mapVariableAndContextToIndex(p_var, time_integrator->getCurrentContext());
+        const int p_cloned_idx = var_db->registerClonedPatchDataIndex(p_var, p_idx);
+        const int U_adv_diff_idx =
+            var_db->mapVariableAndContextToIndex(U_adv_diff_var, adv_diff_integrator->getCurrentContext());
+        const int U_adv_diff_cloned_idx = var_db->registerClonedPatchDataIndex(U_adv_diff_var, U_adv_diff_idx);
+        const int coarsest_ln = 0;
+        const int finest_ln = patch_hierarchy->getFinestLevelNumber();
+        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+        {
+            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(u_cloned_idx, loop_time);
+            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(p_cloned_idx, loop_time);
+            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(U_adv_diff_cloned_idx, loop_time);
+        }
+        u_init->setDataOnPatchHierarchy(u_cloned_idx, u_var, patch_hierarchy, loop_time);
+        p_init->setDataOnPatchHierarchy(p_cloned_idx, p_var, patch_hierarchy, loop_time - 0.5 * dt);
+        u_init->setDataOnPatchHierarchy(U_adv_diff_cloned_idx, U_adv_diff_var, patch_hierarchy, loop_time);
+
+        HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+        HierarchySideDataOpsReal<NDIM, double> hier_sc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+        HierarchyMathOps hier_math_ops("HierarchyMathOps", patch_hierarchy);
+        hier_math_ops.setPatchHierarchy(patch_hierarchy);
+        hier_math_ops.resetLevels(coarsest_ln, finest_ln);
+        const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
+        const int wgt_sc_idx = hier_math_ops.getSideWeightPatchDescriptorIndex();
+
+        Pointer<CellVariable<NDIM, double> > u_cc_var = u_var;
+        if (u_cc_var)
+        {
+            hier_cc_data_ops.subtract(u_idx, u_idx, u_cloned_idx);
+            pout << "Error in u at time " << loop_time << ":\n"
+                 << "  L1-norm:  " << hier_cc_data_ops.L1Norm(u_idx, wgt_cc_idx) << "\n"
+                 << "  L2-norm:  " << hier_cc_data_ops.L2Norm(u_idx, wgt_cc_idx) << "\n"
+                 << "  max-norm: " << hier_cc_data_ops.maxNorm(u_idx, wgt_cc_idx) << "\n";
+                
+        }
+
+        Pointer<SideVariable<NDIM, double> > u_sc_var = u_var;
+        if (u_sc_var)
+        {
+            hier_sc_data_ops.subtract(u_idx, u_idx, u_cloned_idx);
+            pout << "Error in u at time " << loop_time << ":\n"
+                 << "  L1-norm:  " << hier_sc_data_ops.L1Norm(u_idx, wgt_sc_idx) << "\n"
+                 << "  L2-norm:  " << hier_sc_data_ops.L2Norm(u_idx, wgt_sc_idx) << "\n"
+                 << "  max-norm: " << hier_sc_data_ops.maxNorm(u_idx, wgt_sc_idx) << "\n";
+                
+        }
+
+        hier_cc_data_ops.subtract(p_idx, p_idx, p_cloned_idx);
+        pout << "Error in p at time " << loop_time - 0.5 * dt << ":\n"
+             << "  L1-norm:  " << hier_cc_data_ops.L1Norm(p_idx, wgt_cc_idx) << "\n"
+             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(p_idx, wgt_cc_idx) << "\n"
+             << "  max-norm: " << hier_cc_data_ops.maxNorm(p_idx, wgt_cc_idx) << "\n";
+
+        hier_cc_data_ops.subtract(U_adv_diff_idx, U_adv_diff_idx, U_adv_diff_cloned_idx);
+        pout << "Error in U_adv_diff at time " << loop_time << ":\n"
+             << "  L1-norm:  " << hier_cc_data_ops.L1Norm(U_adv_diff_idx, wgt_cc_idx) << "\n"
+             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(U_adv_diff_idx, wgt_cc_idx) << "\n"
+             << "  max-norm: " << hier_cc_data_ops.maxNorm(U_adv_diff_idx, wgt_cc_idx) << "\n"
+             << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+
+        if (dump_viz_data && uses_visit)
+        {
+            time_integrator->setupPlotData();
+            visit_data_writer->writePlotData(patch_hierarchy, iteration_num + 1, loop_time);
+        }
+
         // Cleanup boundary condition specification objects (when necessary).
         for (unsigned int d = 0; d < NDIM; ++d) delete u_bc_coefs[d];
-        delete T_bc_coef;
+        for (unsigned int d = 0; d < NDIM; ++d) delete U_adv_diff_bc_coefs[d];
 
     } // cleanup dynamically allocated objects prior to shutdown
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
-} // main
+    return true;
+} // run_example
