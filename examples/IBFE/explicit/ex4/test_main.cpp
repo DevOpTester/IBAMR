@@ -6,12 +6,14 @@ char** ex_argv;
 bool ex_runs;
 bool run_example(int, char**);
 
-TEST(IBFE_ex4, 2d) {
-    ex_runs = run_example(ex_argc, ex_argv);
-    EXPECT_EQ(ex_runs, true);
-}
+#if (NDIM == 2)
+#define TEST_CASE_NAME IBFE_ex4_2d
+#endif
+#if (NDIM == 3)
+#define TEST_CASE_NAME IBFE_ex5_3d
+#endif
 
-TEST(IBFE_ex4, 3d) {
+TEST(TEST_CASE_NAME, example_runs) {
     ex_runs = run_example(ex_argc, ex_argv);
     EXPECT_EQ(ex_runs, true);
 }

@@ -6,15 +6,17 @@ char** ex_argv;
 bool ex_runs;
 bool run_example(int, char**);
 
-TEST(IBFE_ex1, 2d) {
+#if (NDIM == 2)
+#define TEST_CASE_NAME IBFE_ex1_2d
+#endif
+#if (NDIM == 3)
+#define TEST_CASE_NAME IBFE_ex1_3d
+#endif
+
+TEST(TEST_CASE_NAME, example_runs) {
     ex_runs = run_example(ex_argc, ex_argv);
     EXPECT_EQ(ex_runs, true);
 }
-
-/*TEST(IBFE_ex0, 3d) {
-    ExampleRuns = run_example(example_argc, example_argv);
-    EXPECT_EQ(ExampleRuns, true);
-}*/
 
 int main( int argc, char** argv ) {
     testing::InitGoogleTest( &argc, argv ); 
