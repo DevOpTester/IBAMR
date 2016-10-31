@@ -24,8 +24,8 @@ static const int MAX_IDX = 2;
 #endif
 
 TEST(TEST_CASE_NAME, Q_L1Norm) {
-	bench  = bench_Q_err[L1_IDX];
-	actual = Q_err[L1_IDX];
+    bench  = bench_Q_err[L1_IDX];
+    actual = Q_err[L1_IDX];
     EXPECT_LE(std::abs((actual - bench)), (bench*REL_ERROR));
 }
 
