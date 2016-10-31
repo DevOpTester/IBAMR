@@ -389,7 +389,6 @@ LTLIBSAMRAI3D_SOLV = @LTLIBSAMRAI3D_SOLV@
 LTLIBSAMRAI3D_XFER = @LTLIBSAMRAI3D_XFER@
 LTLIBSILO = @LTLIBSILO@
 LTLIBSILOH5 = @LTLIBSILOH5@
-LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 M4 = @M4@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
@@ -824,6 +823,11 @@ examples:
 	@(cd ConstraintIB     && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd CIB              && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd CIBFE            && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
+
+gtest:
+	@(cd adv_diff && make gtest) || exit 1;
+	@(cd IBFE/explicit && make gtest) || exit 1;
+	@(cd navier_stokes && make gtest) || exit 1;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

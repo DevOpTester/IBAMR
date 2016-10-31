@@ -18,4 +18,9 @@ examples:
 	@(cd ConstraintIB     && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd CIB              && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd CIBFE            && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
+	
+gtest:
+	@(cd adv_diff && make gtest) || exit 1;
+	@(cd IBFE/explicit && make gtest) || exit 1;
+	@(cd navier_stokes && make gtest) || exit 1;
 
