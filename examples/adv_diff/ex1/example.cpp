@@ -45,13 +45,11 @@
 #include <ibamr/AdvDiffPredictorCorrectorHierarchyIntegrator.h>
 #include <ibamr/AdvDiffSemiImplicitHierarchyIntegrator.h>
 #include <ibtk/AppInitializer.h>
-#include <LocationIndexRobinBcCoefs.h>
+#include <ibtk/muParserCartGridFunction.h>
+#include <ibtk/muParserRobinBcCoefs.h>
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
-
-#include "QInit.h"
-#include "UFunction.h"
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -64,14 +62,18 @@
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[], std::vector<double>& U_err)
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
+    
+    //resize U_err to hold error data
+    U_err.resize(3);
+
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -80,7 +82,6 @@ main(int argc, char* argv[])
         // and enable file logging.
         Pointer<AppInitializer> app_initializer = new AppInitializer(argc, argv, "adv_diff.log");
         Pointer<Database> input_db = app_initializer->getInputDatabase();
-        Pointer<Database> main_db = app_initializer->getComponentDatabase("Main");
 
         // Get various standard options set in the input file.
         const bool dump_viz_data = app_initializer->dumpVizData();
@@ -94,12 +95,13 @@ main(int argc, char* argv[])
         const bool dump_timer_data = app_initializer->dumpTimerData();
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
+        Pointer<Database> main_db = app_initializer->getComponentDatabase("Main");
+
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
         Pointer<AdvDiffHierarchyIntegrator> time_integrator;
-        const string solver_type =
-            app_initializer->getComponentDatabase("Main")->getStringWithDefault("solver_type", "GODUNOV");
+        const string solver_type = main_db->getStringWithDefault("solver_type", "GODUNOV");
         if (solver_type == "GODUNOV")
         {
             Pointer<AdvectorExplicitPredictorPatchOps> predictor = new AdvectorExplicitPredictorPatchOps(
@@ -138,33 +140,58 @@ main(int argc, char* argv[])
                                         box_generator,
                                         load_balancer);
 
-        // Setup the advection velocity.
-        Pointer<FaceVariable<NDIM, double> > u_var = new FaceVariable<NDIM, double>("u");
-        UFunction u_fcn("UFunction", grid_geometry, app_initializer->getComponentDatabase("UFunction"));
-        const bool u_is_div_free = true;
-        time_integrator->registerAdvectionVelocity(u_var);
-        time_integrator->setAdvectionVelocityIsDivergenceFree(u_var, u_is_div_free);
-        time_integrator->setAdvectionVelocityFunction(u_var, Pointer<CartGridFunction>(&u_fcn, false));
+        // Create an initial condition specification object.
+        Pointer<CartGridFunction> u_init = new muParserCartGridFunction(
+            "u_init", app_initializer->getComponentDatabase("VelocityInitialConditions"), grid_geometry);
 
-        // Setup the advected and diffused quantity.
-        const ConvectiveDifferencingType difference_form =
-            IBAMR::string_to_enum<ConvectiveDifferencingType>(main_db->getStringWithDefault(
-                "difference_form", IBAMR::enum_to_string<ConvectiveDifferencingType>(ADVECTIVE)));
-        pout << "solving the advection-diffusion equation in "
-             << IBAMR::enum_to_string<ConvectiveDifferencingType>(difference_form) << " form.\n";
-        Pointer<CellVariable<NDIM, double> > Q_var = new CellVariable<NDIM, double>("Q");
-        QInit Q_init("QInit", grid_geometry, app_initializer->getComponentDatabase("QInit"));
-        LocationIndexRobinBcCoefs<NDIM> physical_bc_coef(
-            "physical_bc_coef", app_initializer->getComponentDatabase("LocationIndexRobinBcCoefs"));
-        const double kappa = app_initializer->getComponentDatabase("QInit")->getDouble("kappa");
-        time_integrator->registerTransportedQuantity(Q_var);
-        time_integrator->setAdvectionVelocity(Q_var, u_var);
-        time_integrator->setDiffusionCoefficient(Q_var, kappa);
-        time_integrator->setConvectiveDifferencingType(Q_var, difference_form);
-        time_integrator->setInitialConditions(Q_var, Pointer<CartGridFunction>(&Q_init, false));
-        time_integrator->setPhysicalBcCoef(Q_var, &physical_bc_coef);
+        // Create boundary condition specification objects (when necessary).
+        const IntVector<NDIM>& periodic_shift = grid_geometry->getPeriodicShift();
+        vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM);
+        if (periodic_shift.min() > 0)
+        {
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                u_bc_coefs[d] = NULL;
+            }
+        }
+        else
+        {
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                ostringstream bc_coefs_name_stream;
+                bc_coefs_name_stream << "u_bc_coefs_" << d;
+                const string bc_coefs_name = bc_coefs_name_stream.str();
+                ostringstream bc_coefs_db_name_stream;
+                bc_coefs_db_name_stream << "VelocityBcCoefs_" << d;
+                const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
+                u_bc_coefs[d] = new muParserRobinBcCoefs(
+                    bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
+            }
+        }
 
-        // Set up visualization plot file writer.
+        // Set up the advected and diffused quantity.
+        Pointer<CellVariable<NDIM, double> > U_var = new CellVariable<NDIM, double>("U", NDIM);
+        time_integrator->registerTransportedQuantity(U_var);
+        time_integrator->setDiffusionCoefficient(U_var, input_db->getDouble("MU") / input_db->getDouble("RHO"));
+        time_integrator->setInitialConditions(U_var, u_init);
+        time_integrator->setPhysicalBcCoefs(U_var, u_bc_coefs);
+
+        Pointer<FaceVariable<NDIM, double> > u_adv_var = new FaceVariable<NDIM, double>("u_adv");
+        time_integrator->registerAdvectionVelocity(u_adv_var);
+        time_integrator->setAdvectionVelocityFunction(u_adv_var, u_init);
+        time_integrator->setAdvectionVelocity(U_var, u_adv_var);
+
+        if (input_db->keyExists("ForcingFunction"))
+        {
+            Pointer<CellVariable<NDIM, double> > F_var = new CellVariable<NDIM, double>("F", NDIM);
+            Pointer<CartGridFunction> F_fcn = new muParserCartGridFunction(
+                "F_fcn", app_initializer->getComponentDatabase("ForcingFunction"), grid_geometry);
+            time_integrator->registerSourceTerm(F_var);
+            time_integrator->setSourceTermFunction(F_var, F_fcn);
+            time_integrator->setSourceTerm(U_var, F_var);
+        }
+
+        // Set up visualization plot file writers.
         Pointer<VisItDataWriter<NDIM> > visit_data_writer = app_initializer->getVisItDataWriter();
         if (uses_visit)
         {
@@ -174,8 +201,8 @@ main(int argc, char* argv[])
         // Initialize hierarchy configuration and data on all patches.
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
-        // Close the restart manager.
-        RestartManager::getManager()->closeRestartFile();
+        // Deallocate initialization objects.
+        app_initializer.setNull();
 
         // Print the input database contents to the log file.
         plog << "Input database:\n";
@@ -215,7 +242,8 @@ main(int argc, char* argv[])
             pout << "\n";
 
             // At specified intervals, write visualization and restart files,
-            // and print out timer data.
+            // print out timer data, and store hierarchy data for post
+            // processing.
             iteration_num += 1;
             const bool last_step = !time_integrator->stepsRemaining();
             if (dump_viz_data && uses_visit && (iteration_num % viz_dump_interval == 0 || last_step))
@@ -226,7 +254,7 @@ main(int argc, char* argv[])
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
-                pout << "\nWriting restart files...\n\nn";
+                pout << "\nWriting restart files...\n\n";
                 RestartManager::getManager()->writeRestartFile(restart_dump_dirname, iteration_num);
             }
             if (dump_timer_data && (iteration_num % timer_dump_interval == 0 || last_step))
@@ -242,43 +270,50 @@ main(int argc, char* argv[])
              << "Computing error norms.\n\n";
 
         VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
-        const Pointer<VariableContext> Q_ctx = time_integrator->getCurrentContext();
-        const int Q_idx = var_db->mapVariableAndContextToIndex(Q_var, Q_ctx);
-        const int Q_cloned_idx = var_db->registerClonedPatchDataIndex(Q_var, Q_idx);
+
+        const Pointer<VariableContext> U_ctx = time_integrator->getCurrentContext();
+        const int U_idx = var_db->mapVariableAndContextToIndex(U_var, U_ctx);
+        const int U_cloned_idx = var_db->registerClonedPatchDataIndex(U_var, U_idx);
 
         const int coarsest_ln = 0;
         const int finest_ln = patch_hierarchy->getFinestLevelNumber();
         for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
         {
-            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(Q_cloned_idx, loop_time);
+            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(U_cloned_idx, loop_time);
         }
-        Q_init.setDataOnPatchHierarchy(Q_cloned_idx, Q_var, patch_hierarchy, loop_time);
+
+        u_init->setDataOnPatchHierarchy(U_cloned_idx, U_var, patch_hierarchy, loop_time);
 
         HierarchyMathOps hier_math_ops("HierarchyMathOps", patch_hierarchy);
         hier_math_ops.setPatchHierarchy(patch_hierarchy);
         hier_math_ops.resetLevels(coarsest_ln, finest_ln);
-        const int wgt_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
+        const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
 
         HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
-        hier_cc_data_ops.subtract(Q_idx, Q_idx, Q_cloned_idx);
-        pout << "Error in " << Q_var->getName() << " at time " << loop_time << ":\n"
-             << "  L1-norm:  " << hier_cc_data_ops.L1Norm(Q_idx, wgt_idx) << "\n"
-             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(Q_idx, wgt_idx) << "\n"
-             << "  max-norm: " << hier_cc_data_ops.maxNorm(Q_idx, wgt_idx) << "\n"
-             << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+        hier_cc_data_ops.subtract(U_idx, U_idx, U_cloned_idx);
+        pout << "Error in U at time " << loop_time << ":\n"
+             << "  L1-norm:  " 
+             << std::setprecision(10) << hier_cc_data_ops.L1Norm(U_idx, wgt_cc_idx) << "\n"
+             << "  L2-norm:  " << hier_cc_data_ops.L2Norm(U_idx, wgt_cc_idx) << "\n"
+             << "  max-norm: " << hier_cc_data_ops.maxNorm(U_idx, wgt_cc_idx) << "\n";
 
-        if (dump_viz_data)
+             U_err[0] = hier_cc_data_ops.L1Norm(U_idx, wgt_cc_idx);
+             U_err[1] = hier_cc_data_ops.L2Norm(U_idx, wgt_cc_idx);
+             U_err[2] = hier_cc_data_ops.maxNorm(U_idx, wgt_cc_idx);
+
+
+        if (dump_viz_data && uses_visit)
         {
-            if (uses_visit)
-            {
-                time_integrator->setupPlotData();
-                visit_data_writer->writePlotData(patch_hierarchy, iteration_num + 1, loop_time);
-            }
+            time_integrator->setupPlotData();
+            visit_data_writer->writePlotData(patch_hierarchy, iteration_num + 1, loop_time);
         }
+
+        // Cleanup boundary condition specification objects (when necessary).
+        for (unsigned int d = 0; d < NDIM; ++d) delete u_bc_coefs[d];
 
     } // cleanup dynamically allocated objects prior to shutdown
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
+    return true;
 } // main

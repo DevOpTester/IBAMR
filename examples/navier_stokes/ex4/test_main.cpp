@@ -7,11 +7,15 @@ char** ex_argv;
 bool ex_runs;
 bool run_example(int, char**);
 
-TEST(navier_stokes_ex4, 2d) { 
-    EXPECT_EQ(ex_runs, true);
-}
+// Set names of test based on if compiled with 2D or 3D libraries
+#if (NDIM == 2)
+#define TEST_CASE_NAME navier_stokes_ex4_2d
+#endif
+#if (NDIM == 3)
+#define TEST_CASE_NAME navier_stokes_ex4_3d
+#endif
 
-TEST(navier_stokes_ex4, 3d) {
+TEST(TEST_CASE_NAME, example_runs) { 
     EXPECT_EQ(ex_runs, true);
 }
 

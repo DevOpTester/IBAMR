@@ -389,7 +389,6 @@ LTLIBSAMRAI3D_SOLV = @LTLIBSAMRAI3D_SOLV@
 LTLIBSAMRAI3D_XFER = @LTLIBSAMRAI3D_XFER@
 LTLIBSILO = @LTLIBSILO@
 LTLIBSILOH5 = @LTLIBSILOH5@
-LT_SYS_LIBRARY_PATH = @LT_SYS_LIBRARY_PATH@
 M4 = @M4@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
@@ -813,6 +812,11 @@ examples:
 	@(cd ex0 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex1 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex2 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
+
+gtest:
+	@(cd ex0 && make gtest) || exit 1;
+	@(cd ex1 && make gtest) || exit 1;
+	@(cd ex2 && make gtest) || exit 1;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
