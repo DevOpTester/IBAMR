@@ -501,7 +501,8 @@ pkg_includedir = $(includedir)/@PACKAGE@
 SUFFIXES = .f.m4
 EXAMPLE_DRIVER = ex_main.cpp
 GTEST_DRIVER = test_main.cpp
-EXTRA_DIST = input3d shell_3d_in.vertex shell_3d_out.vertex petsc_options.dat
+EXTRA_DIST = input3d shell_3d_in.vertex shell_3d_out.vertex \
+	petsc_options.dat input3d.test
 GTESTS = $(am__append_1)
 EXAMPLES = $(am__append_2)
 main3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
