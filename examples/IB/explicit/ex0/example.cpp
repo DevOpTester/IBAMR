@@ -41,69 +41,26 @@
 #include <LoadBalancer.h>
 #include <StandardTagAndInitialize.h>
 
-// Headers for basic libMesh objects
-#include <libmesh/boundary_info.h>
-#include <libmesh/equation_systems.h>
-#include <libmesh/exodusII_io.h>
-#include <libmesh/mesh.h>
-#include <libmesh/mesh_generation.h>
-
 // Headers for application-specific algorithm/data structure objects
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
-#include <ibamr/IBFECentroidPostProcessor.h>
-#include <ibamr/IBFEMethod.h>
+#include <ibamr/IBMethod.h>
+#include <ibamr/IBStandardForceGen.h>
+#include <ibamr/IBStandardInitializer.h>
 #include <ibamr/INSCollocatedHierarchyIntegrator.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 #include <ibtk/AppInitializer.h>
-#include <ibtk/libmesh_utilities.h>
+#include <ibtk/LData.h>
+#include <ibtk/LDataManager.h>
 #include <ibtk/muParserCartGridFunction.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
 
-// Elasticity model data.
-namespace ModelData
-{
-// Stress tensor functions.
-static double c1_s = 0.05;
-static double p0_s = 0.0;
-static double beta_s = 0.0;
-void
-PK1_dev_stress_function(TensorValue<double>& PP,
-                        const TensorValue<double>& FF,
-                        const libMesh::Point& /*X*/,
-                        const libMesh::Point& /*s*/,
-                        Elem* const /*elem*/,
-                        const std::vector<NumericVector<double>*>& /*system_data*/,
-                        double /*time*/,
-                        void* /*ctx*/)
-{
-    PP = 2.0 * c1_s * FF;
-    return;
-} // PK1_dev_stress_function
-
-void
-PK1_dil_stress_function(TensorValue<double>& PP,
-                        const TensorValue<double>& FF,
-                        const libMesh::Point& /*X*/,
-                        const libMesh::Point& /*s*/,
-                        Elem* const /*elem*/,
-                        const std::vector<NumericVector<double>*>& /*system_data*/,
-                        double /*time*/,
-                        void* /*ctx*/)
-{
-    PP = 2.0 * (-p0_s + beta_s * log(FF.det())) * tensor_inverse_transpose(FF, NDIM);
-    return;
-} // PK1_dil_stress_function
-}
-using namespace ModelData;
-
 // Function prototypes
 void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
                  Pointer<INSHierarchyIntegrator> navier_stokes_integrator,
-                 Mesh& mesh,
-                 EquationSystems* equation_systems,
+                 LDataManager* l_data_manager,
                  const int iteration_num,
                  const double loop_time,
                  const string& data_dump_dirname);
@@ -119,14 +76,17 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool run_example(int argc, char* argv[],  std::vector<double>& u_err,  std::vector<double>& p_err)
 {
-    // Initialize libMesh, PETSc, MPI, and SAMRAI.
-    LibMeshInit init(argc, argv);
+    // Initialize PETSc, MPI, and SAMRAI.
+    PetscInitialize(&argc, &argv, NULL, NULL);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
+    
+    //resize error vectors to hold data from u and p
+    u_err.resize(3);
+    p_err.resize(3);
 
     { // cleanup dynamically allocated objects prior to shutdown
 
@@ -140,8 +100,6 @@ main(int argc, char* argv[])
         const bool dump_viz_data = app_initializer->dumpVizData();
         const int viz_dump_interval = app_initializer->getVizDumpInterval();
         const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
-        const bool uses_exodus = dump_viz_data && !app_initializer->getExodusIIFilename().empty();
-        const string exodus_filename = app_initializer->getExodusIIFilename();
 
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
@@ -158,53 +116,12 @@ main(int argc, char* argv[])
         const bool dump_timer_data = app_initializer->dumpTimerData();
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
 
-        // Create a simple FE mesh.
-        //
-        // Note that boundary condition data must be registered with each FE
-        // system before calling IBFEMethod::initializeFEData().
-        Mesh mesh(init.comm(), NDIM);
-        const double dx = input_db->getDouble("DX");
-        const double ds = input_db->getDouble("MFAC") * dx;
-        string elem_type = input_db->getString("ELEM_TYPE");
-        MeshTools::Generation::build_square(mesh,
-                                            static_cast<int>(ceil(2.0 / ds)),
-                                            static_cast<int>(ceil(0.5 / ds)),
-                                            0.0,
-                                            2.0,
-                                            0.0,
-                                            0.5,
-                                            Utility::string_to_enum<ElemType>(elem_type));
-        const MeshBase::const_element_iterator end_el = mesh.elements_end();
-        for (MeshBase::const_element_iterator el = mesh.elements_begin(); el != end_el; ++el)
-        {
-            Elem* const elem = *el;
-            for (unsigned int side = 0; side < elem->n_sides(); ++side)
-            {
-                const bool at_mesh_bdry = !elem->neighbor(side);
-                if (at_mesh_bdry)
-                {
-                    BoundaryInfo* boundary_info = mesh.boundary_info.get();
-                    if (!boundary_info->has_boundary_id(elem, side, 2))
-                    {
-#if (NDIM == 2)
-                        boundary_info->add_side(elem, side, FEDataManager::ZERO_DISPLACEMENT_XY_BDRY_ID);
-#endif
-#if (NDIM == 3)
-                        boundary_info->add_side(elem, side, FEDataManager::ZERO_DISPLACEMENT_XYZ_BDRY_ID);
-#endif
-                    }
-                }
-            }
-        }
-        c1_s = input_db->getDouble("C1_S");
-        p0_s = input_db->getDouble("P0_S");
-        beta_s = input_db->getDouble("BETA_S");
-
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
         Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
-        const string solver_type = app_initializer->getComponentDatabase("Main")->getString("solver_type");
+        const string solver_type =
+            app_initializer->getComponentDatabase("Main")->getStringWithDefault("solver_type", "STAGGERED");
         if (solver_type == "STAGGERED")
         {
             navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
@@ -222,11 +139,7 @@ main(int argc, char* argv[])
             TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
                                                    << "Valid options are: COLLOCATED, STAGGERED");
         }
-        Pointer<IBFEMethod> ib_method_ops =
-            new IBFEMethod("IBFEMethod",
-                           app_initializer->getComponentDatabase("IBFEMethod"),
-                           &mesh,
-                           app_initializer->getComponentDatabase("GriddingAlgorithm")->getInteger("max_levels"));
+        Pointer<IBMethod> ib_method_ops = new IBMethod("IBMethod", app_initializer->getComponentDatabase("IBMethod"));
         Pointer<IBHierarchyIntegrator> time_integrator =
             new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
                                               app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
@@ -249,86 +162,51 @@ main(int argc, char* argv[])
                                         box_generator,
                                         load_balancer);
 
-        // Configure the IBFE solver.
-        IBFEMethod::PK1StressFcnData PK1_dev_stress_data(PK1_dev_stress_function);
-        IBFEMethod::PK1StressFcnData PK1_dil_stress_data(PK1_dil_stress_function);
-        PK1_dev_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(input_db->getStringWithDefault("PK1_DEV_QUAD_ORDER", "THIRD"));
-        PK1_dil_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(input_db->getStringWithDefault("PK1_DIL_QUAD_ORDER", "FIRST"));
-        ib_method_ops->registerPK1StressFunction(PK1_dev_stress_data);
-        ib_method_ops->registerPK1StressFunction(PK1_dil_stress_data);
-        FEDataManager* fe_data_manager = ib_method_ops->getFEDataManager();
-        EquationSystems* equation_systems = fe_data_manager->getEquationSystems();
+        // Configure the IB solver.
+        Pointer<IBStandardInitializer> ib_initializer = new IBStandardInitializer(
+            "IBStandardInitializer", app_initializer->getComponentDatabase("IBStandardInitializer"));
+        ib_method_ops->registerLInitStrategy(ib_initializer);
+        Pointer<IBStandardForceGen> ib_force_fcn = new IBStandardForceGen();
+        ib_method_ops->registerIBLagrangianForceFunction(ib_force_fcn);
 
-        // Set up post processor to recover computed stresses.
-        Pointer<IBFEPostProcessor> ib_post_processor =
-            new IBFECentroidPostProcessor("IBFEPostProcessor", fe_data_manager);
+        // Create Eulerian initial condition specification objects.  These
+        // objects also are used to specify exact solution values for error
+        // analysis.
+        Pointer<CartGridFunction> u_init = new muParserCartGridFunction(
+            "u_init", app_initializer->getComponentDatabase("VelocityInitialConditions"), grid_geometry);
+        navier_stokes_integrator->registerVelocityInitialConditions(u_init);
 
-        ib_post_processor->registerTensorVariable("FF", MONOMIAL, CONSTANT, IBFEPostProcessor::FF_fcn);
-
-        std::pair<IBTK::TensorMeshFcnPtr, void*> PK1_dev_stress_fcn_data(PK1_dev_stress_function,
-                                                                         static_cast<void*>(NULL));
-        ib_post_processor->registerTensorVariable("sigma_dev",
-                                                  MONOMIAL,
-                                                  CONSTANT,
-                                                  IBFEPostProcessor::cauchy_stress_from_PK1_stress_fcn,
-                                                  std::vector<unsigned int>(),
-                                                  &PK1_dev_stress_fcn_data);
-
-        std::pair<IBTK::TensorMeshFcnPtr, void*> PK1_dil_stress_fcn_data(PK1_dil_stress_function,
-                                                                         static_cast<void*>(NULL));
-        ib_post_processor->registerTensorVariable("sigma_dil",
-                                                  MONOMIAL,
-                                                  CONSTANT,
-                                                  IBFEPostProcessor::cauchy_stress_from_PK1_stress_fcn,
-                                                  std::vector<unsigned int>(),
-                                                  &PK1_dil_stress_fcn_data);
-
-        Pointer<hier::Variable<NDIM> > p_var = navier_stokes_integrator->getPressureVariable();
-        Pointer<VariableContext> p_current_ctx = navier_stokes_integrator->getCurrentContext();
-        HierarchyGhostCellInterpolation::InterpolationTransactionComponent p_ghostfill(
-            /*data_idx*/ -1, "LINEAR_REFINE", /*use_cf_bdry_interpolation*/ false, "CONSERVATIVE_COARSEN", "LINEAR");
-        FEDataManager::InterpSpec p_interp_spec("PIECEWISE_LINEAR",
-                                                QGAUSS,
-                                                FIFTH,
-                                                /*use_adaptive_quadrature*/ false,
-                                                /*point_density*/ 2.0,
-                                                /*use_consistent_mass_matrix*/ true);
-        ib_post_processor->registerInterpolatedScalarEulerianVariable(
-            "p_f", LAGRANGE, FIRST, p_var, p_current_ctx, p_ghostfill, p_interp_spec);
-
-        // Create Eulerian initial condition specification objects.
-        if (input_db->keyExists("VelocityInitialConditions"))
-        {
-            Pointer<CartGridFunction> u_init = new muParserCartGridFunction(
-                "u_init", app_initializer->getComponentDatabase("VelocityInitialConditions"), grid_geometry);
-            navier_stokes_integrator->registerVelocityInitialConditions(u_init);
-        }
-
-        if (input_db->keyExists("PressureInitialConditions"))
-        {
-            Pointer<CartGridFunction> p_init = new muParserCartGridFunction(
-                "p_init", app_initializer->getComponentDatabase("PressureInitialConditions"), grid_geometry);
-            navier_stokes_integrator->registerPressureInitialConditions(p_init);
-        }
+        Pointer<CartGridFunction> p_init = new muParserCartGridFunction(
+            "p_init", app_initializer->getComponentDatabase("PressureInitialConditions"), grid_geometry);
+        navier_stokes_integrator->registerPressureInitialConditions(p_init);
 
         // Create Eulerian boundary condition specification objects (when necessary).
+        const IntVector<NDIM>& periodic_shift = grid_geometry->getPeriodicShift();
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM);
-        for (unsigned int d = 0; d < NDIM; ++d)
+        if (periodic_shift.min() > 0)
         {
-            ostringstream bc_coefs_name_stream;
-            bc_coefs_name_stream << "u_bc_coefs_" << d;
-            const string bc_coefs_name = bc_coefs_name_stream.str();
-
-            ostringstream bc_coefs_db_name_stream;
-            bc_coefs_db_name_stream << "VelocityBcCoefs_" << d;
-            const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
-
-            u_bc_coefs[d] = new muParserRobinBcCoefs(
-                bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                u_bc_coefs[d] = NULL;
+            }
         }
-        navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
+        else
+        {
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                ostringstream bc_coefs_name_stream;
+                bc_coefs_name_stream << "u_bc_coefs_" << d;
+                const string bc_coefs_name = bc_coefs_name_stream.str();
+
+                ostringstream bc_coefs_db_name_stream;
+                bc_coefs_db_name_stream << "VelocityBcCoefs_" << d;
+                const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
+
+                u_bc_coefs[d] = new muParserRobinBcCoefs(
+                    bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
+            }
+            navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
+        }
 
         // Create Eulerian body force function specification objects.
         if (input_db->keyExists("ForcingFunction"))
@@ -340,41 +218,59 @@ main(int argc, char* argv[])
 
         // Set up visualization plot file writers.
         Pointer<VisItDataWriter<NDIM> > visit_data_writer = app_initializer->getVisItDataWriter();
+        Pointer<LSiloDataWriter> silo_data_writer = app_initializer->getLSiloDataWriter();
         if (uses_visit)
         {
+            ib_initializer->registerLSiloDataWriter(silo_data_writer);
             time_integrator->registerVisItDataWriter(visit_data_writer);
+            ib_method_ops->registerLSiloDataWriter(silo_data_writer);
         }
-        AutoPtr<ExodusII_IO> exodus_io(uses_exodus ? new ExodusII_IO(mesh) : NULL);
 
         // Initialize hierarchy configuration and data on all patches.
-        ib_method_ops->initializeFEData();
-        ib_post_processor->initializeFEData();
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Deallocate initialization objects.
+        ib_method_ops->freeLInitStrategy();
+        ib_initializer.setNull();
         app_initializer.setNull();
 
         // Print the input database contents to the log file.
         plog << "Input database:\n";
         input_db->printClassData(plog);
 
+        // Setup data used to determine the accuracy of the computed solution.
+        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
+
+        const Pointer<Variable<NDIM> > u_var = navier_stokes_integrator->getVelocityVariable();
+        const Pointer<VariableContext> u_ctx = navier_stokes_integrator->getCurrentContext();
+
+        const int u_idx = var_db->mapVariableAndContextToIndex(u_var, u_ctx);
+        const int u_cloned_idx = var_db->registerClonedPatchDataIndex(u_var, u_idx);
+
+        const Pointer<Variable<NDIM> > p_var = navier_stokes_integrator->getPressureVariable();
+        const Pointer<VariableContext> p_ctx = navier_stokes_integrator->getCurrentContext();
+
+        const int p_idx = var_db->mapVariableAndContextToIndex(p_var, p_ctx);
+        const int p_cloned_idx = var_db->registerClonedPatchDataIndex(p_var, p_idx);
+        visit_data_writer->registerPlotQuantity("P error", "SCALAR", p_cloned_idx);
+
+        const int coarsest_ln = 0;
+        const int finest_ln = patch_hierarchy->getFinestLevelNumber();
+        for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+        {
+            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(u_cloned_idx);
+            patch_hierarchy->getPatchLevel(ln)->allocatePatchData(p_cloned_idx);
+        }
+
         // Write out initial visualization data.
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
-        if (dump_viz_data)
+        if (dump_viz_data && uses_visit)
         {
             pout << "\n\nWriting visualization files...\n\n";
-            if (uses_visit)
-            {
-                time_integrator->setupPlotData();
-                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-            }
-            if (uses_exodus)
-            {
-                ib_post_processor->postProcessData(loop_time);
-                exodus_io->write_timestep(
-                    exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
-            }
+            time_integrator->setupPlotData();
+            visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+            silo_data_writer->writePlotData(iteration_num, loop_time);
         }
 
         // Main time step loop.
@@ -405,20 +301,12 @@ main(int argc, char* argv[])
             // processing.
             iteration_num += 1;
             const bool last_step = !time_integrator->stepsRemaining();
-            if (dump_viz_data && (iteration_num % viz_dump_interval == 0 || last_step))
+            if (dump_viz_data && uses_visit && (iteration_num % viz_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting visualization files...\n\n";
-                if (uses_visit)
-                {
-                    time_integrator->setupPlotData();
-                    visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-                }
-                if (uses_exodus)
-                {
-                    ib_post_processor->postProcessData(loop_time);
-                    exodus_io->write_timestep(
-                        exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
-                }
+                time_integrator->setupPlotData();
+                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+                silo_data_writer->writePlotData(iteration_num, loop_time);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -432,15 +320,82 @@ main(int argc, char* argv[])
             }
             if (dump_postproc_data && (iteration_num % postproc_data_dump_interval == 0 || last_step))
             {
-                pout << "\nWriting state data...\n\n";
                 output_data(patch_hierarchy,
                             navier_stokes_integrator,
-                            mesh,
-                            equation_systems,
+                            ib_method_ops->getLDataManager(),
                             iteration_num,
                             loop_time,
                             postproc_data_dump_dirname);
             }
+
+            // Compute velocity and pressure error norms.
+            const int coarsest_ln = 0;
+            const int finest_ln = patch_hierarchy->getFinestLevelNumber();
+            for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+            {
+                Pointer<PatchLevel<NDIM> > level = patch_hierarchy->getPatchLevel(ln);
+                if (!level->checkAllocated(u_cloned_idx)) level->allocatePatchData(u_cloned_idx);
+                if (!level->checkAllocated(p_cloned_idx)) level->allocatePatchData(p_cloned_idx);
+            }
+
+            pout << "\n"
+                 << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                 << "Computing error norms.\n\n";
+
+            u_init->setDataOnPatchHierarchy(u_cloned_idx, u_var, patch_hierarchy, loop_time);
+            p_init->setDataOnPatchHierarchy(p_cloned_idx, p_var, patch_hierarchy, loop_time - 0.5 * dt);
+
+            HierarchyMathOps hier_math_ops("HierarchyMathOps", patch_hierarchy);
+            hier_math_ops.setPatchHierarchy(patch_hierarchy);
+            hier_math_ops.resetLevels(coarsest_ln, finest_ln);
+            const int wgt_cc_idx = hier_math_ops.getCellWeightPatchDescriptorIndex();
+            const int wgt_sc_idx = hier_math_ops.getSideWeightPatchDescriptorIndex();
+
+            Pointer<CellVariable<NDIM, double> > u_cc_var = u_var;
+            if (u_cc_var)
+            {
+                HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+                hier_cc_data_ops.subtract(u_cloned_idx, u_idx, u_cloned_idx);
+                pout << "Error in u at time " << loop_time << ":\n"
+                     << "  L1-norm:  " 
+                     << std::setprecision(10) << hier_cc_data_ops.L1Norm(u_cloned_idx, wgt_cc_idx) << "\n"
+                     << "  L2-norm:  " << hier_cc_data_ops.L2Norm(u_cloned_idx, wgt_cc_idx) << "\n"
+                     << "  max-norm: " << hier_cc_data_ops.maxNorm(u_cloned_idx, wgt_cc_idx) << "\n";
+                     
+                     u_err[0] = hier_cc_data_ops.L1Norm(u_cloned_idx, wgt_cc_idx);
+                     u_err[1] = hier_cc_data_ops.L2Norm(u_cloned_idx, wgt_cc_idx);
+                     u_err[2] = hier_cc_data_ops.maxNorm(u_cloned_idx, wgt_cc_idx);
+            }
+
+            Pointer<SideVariable<NDIM, double> > u_sc_var = u_var;
+            if (u_sc_var)
+            {
+                HierarchySideDataOpsReal<NDIM, double> hier_sc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+                hier_sc_data_ops.subtract(u_cloned_idx, u_idx, u_cloned_idx);
+                pout << "Error in u at time " << loop_time << ":\n"
+                     << "  L1-norm:  " 
+                     << std::setprecision(10) << hier_sc_data_ops.L1Norm(u_cloned_idx, wgt_sc_idx) << "\n"
+                     << "  L2-norm:  " << hier_sc_data_ops.L2Norm(u_cloned_idx, wgt_sc_idx) << "\n"
+                     << "  max-norm: " << hier_sc_data_ops.maxNorm(u_cloned_idx, wgt_sc_idx) << "\n";
+                     
+                     u_err[0] = hier_sc_data_ops.L1Norm(u_cloned_idx, wgt_sc_idx);
+                     u_err[1] = hier_sc_data_ops.L2Norm(u_cloned_idx, wgt_sc_idx);
+                     u_err[2] = hier_sc_data_ops.maxNorm(u_cloned_idx, wgt_sc_idx);
+            }
+
+            HierarchyCellDataOpsReal<NDIM, double> hier_cc_data_ops(patch_hierarchy, coarsest_ln, finest_ln);
+            hier_cc_data_ops.subtract(p_cloned_idx, p_idx, p_cloned_idx);
+            pout << "Error in p at time " << loop_time - 0.5 * dt << ":\n"
+                 << "  L1-norm:  " 
+                 << std::setprecision(10) << hier_cc_data_ops.L1Norm(p_cloned_idx, wgt_cc_idx) << "\n"
+                 << "  L2-norm:  " << hier_cc_data_ops.L2Norm(p_cloned_idx, wgt_cc_idx) << "\n"
+                 << "  max-norm: " << hier_cc_data_ops.maxNorm(p_cloned_idx, wgt_cc_idx) << "\n"
+                 << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+                 << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+                 
+                 p_err[0] = hier_cc_data_ops.L1Norm(p_cloned_idx, wgt_cc_idx);
+                 p_err[1] = hier_cc_data_ops.L2Norm(p_cloned_idx, wgt_cc_idx);
+                 p_err[2] = hier_cc_data_ops.maxNorm(p_cloned_idx, wgt_cc_idx);
         }
 
         // Cleanup Eulerian boundary condition specification objects (when
@@ -450,14 +405,14 @@ main(int argc, char* argv[])
     } // cleanup dynamically allocated objects prior to shutdown
 
     SAMRAIManager::shutdown();
-    return 0;
+    PetscFinalize();
+    return true;
 } // main
 
 void
 output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
             Pointer<INSHierarchyIntegrator> navier_stokes_integrator,
-            Mesh& mesh,
-            EquationSystems* equation_systems,
+            LDataManager* l_data_manager,
             const int iteration_num,
             const double loop_time,
             const string& data_dump_dirname)
@@ -484,14 +439,19 @@ output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
     hier_db->close();
 
     // Write Lagrangian data.
-    file_name = data_dump_dirname + "/" + "fe_mesh.";
+    const int finest_hier_level = patch_hierarchy->getFinestLevelNumber();
+    Pointer<LData> X_data = l_data_manager->getLData("X", finest_hier_level);
+    Vec X_petsc_vec = X_data->getVec();
+    Vec X_lag_vec;
+    VecDuplicate(X_petsc_vec, &X_lag_vec);
+    l_data_manager->scatterPETScToLagrangian(X_petsc_vec, X_lag_vec, finest_hier_level);
+    file_name = data_dump_dirname + "/" + "X.";
     sprintf(temp_buf, "%05d", iteration_num);
     file_name += temp_buf;
-    file_name += ".xda";
-    mesh.write(file_name);
-    file_name = data_dump_dirname + "/" + "fe_equation_systems.";
-    sprintf(temp_buf, "%05d", iteration_num);
-    file_name += temp_buf;
-    equation_systems->write(file_name, (EquationSystems::WRITE_DATA | EquationSystems::WRITE_ADDITIONAL_DATA));
+    PetscViewer viewer;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, file_name.c_str(), &viewer);
+    VecView(X_lag_vec, viewer);
+    PetscViewerDestroy(&viewer);
+    VecDestroy(&X_lag_vec);
     return;
 } // output_data

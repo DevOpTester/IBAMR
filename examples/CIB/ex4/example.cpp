@@ -1,5 +1,5 @@
 // Filename main.cpp
-// Created on 23 Aug 2015 by Amneet Bhalla
+// Created on 26 Jul 2016 by Amneet Bhalla
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -63,21 +63,33 @@
 
 //////////////////////////////////////////////////////////////////////////////
 
+struct StructureCtx
+{
+    std::string name;
+    double rho_excess, R;
+    IBTK::Vector F;
+
+};// StructureCtx
+
+
 // Center of mass velocity
 void
 ConstrainedCOMVel(double /*data_time*/, Eigen::Vector3d& U_com, Eigen::Vector3d& W_com, void* /*ctx*/)
 {
     U_com.setZero();
     W_com.setZero();
-    U_com[0] = 1.0;
+    U_com[1] = 1.0;
 
     return;
 } // ConstrainedCOMOuterVel
 
 void
-NetExternalForceTorque(double /*data_time*/, Eigen::Vector3d& F_ext, Eigen::Vector3d& T_ext, void* /*ctx*/)
+NetExternalForceTorque(double /*data_time*/, Eigen::Vector3d& F_ext, Eigen::Vector3d& T_ext, void* ctx)
 {
-    F_ext << 0.0, 0.0, 0.0;
+
+    StructureCtx& struct_ctx = *static_cast<StructureCtx*>(ctx);
+
+    F_ext << struct_ctx.F(0), struct_ctx.F(1), 0.0;
     T_ext << 0.0, 0.0, 0.0;
 
     return;
@@ -89,6 +101,8 @@ ConstrainedNodalVel(Vec /*U_k*/, const RigidDOFVector& /*U*/, const Eigen::Vecto
     // intentionally left blank
     return;
 } // ConstrainedNodalVel
+
+ofstream U_stream;
 
 // Function prototypes
 void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
@@ -108,8 +122,8 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
@@ -204,13 +218,23 @@ main(int argc, char* argv[])
             "IBStandardInitializer", app_initializer->getComponentDatabase("IBStandardInitializer"));
         ib_method_ops->registerLInitStrategy(ib_initializer);
 
+       
         // Specify structure kinematics
-        FreeRigidDOFVector plate_free_dofs;
-        plate_free_dofs << 0, 0, 0;
-        ib_method_ops->setSolveRigidBodyVelocity(0, plate_free_dofs);
+        FreeRigidDOFVector struct_0_free_dofs;
+        struct_0_free_dofs << 1, 1, 1, 1, 1, 1;
+        ib_method_ops->setSolveRigidBodyVelocity(0, struct_0_free_dofs);
+        
+        const double rho_excess = input_db->getDouble("RHO_EXCESS");
+        const double R = input_db->getDouble("R");
+        const double G = input_db->getDouble("G");
 
-        ib_method_ops->registerExternalForceTorqueFunction(&NetExternalForceTorque, NULL, 0);
-        ib_method_ops->registerConstrainedVelocityFunction(NULL, &ConstrainedCOMVel, NULL, 0);
+        StructureCtx struct0;
+        struct0.name = "sphere0";
+        struct0.R  = R;
+        struct0.rho_excess  = rho_excess;
+
+        ib_method_ops->registerExternalForceTorqueFunction(&NetExternalForceTorque, &struct0, 0);
+        ib_method_ops->registerConstrainedVelocityFunction(NULL, &ConstrainedCOMVel, &struct0, 0);
 
         // Create initial condition specification objects.
         Pointer<CartGridFunction> u_init = new muParserCartGridFunction(
@@ -269,7 +293,7 @@ main(int argc, char* argv[])
         std::string mobility_solver_type = input_db->getString("MOBILITY_SOLVER_TYPE");
         if (mobility_solver_type == "DIRECT")
         {
-            std::string mat_name = "plate";
+            std::string mat_name = "sphere_mobility";
             std::vector<std::vector<unsigned> > struct_ids;
             std::vector<unsigned> prototype_structs;
 
@@ -277,7 +301,11 @@ main(int argc, char* argv[])
             prototype_structs.push_back(0);
 
             // Dense matrix to operate upon
-            struct_ids.push_back(prototype_structs);
+            const int num_similar_structs = 1;
+            for (int i = 0; i < num_similar_structs; ++i)
+            {
+                struct_ids.push_back(std::vector<unsigned>(1,i));
+            }
 
             // Register the dense matrix with direct solver
             DirectMobilitySolver* direct_solvers = NULL;
@@ -316,6 +344,12 @@ main(int argc, char* argv[])
                         postproc_data_dump_dirname);
         }
 
+        if (SAMRAI_MPI::getRank() == 0)
+        {
+            U_stream.open("./Lambda/U.txt", std::ios_base::out | ios_base::trunc);
+            U_stream.precision(10);
+        }
+
         // Main time step loop.
         double loop_time_end = time_integrator->getEndTime();
         double dt = 0.0;
@@ -333,24 +367,24 @@ main(int argc, char* argv[])
             dt = time_integrator->getMaximumTimeStepSize();
 
             pout << "Advancing hierarchy by timestep size dt = " << dt << "\n";
-            if (loop_time > 0.11353)
-            {
-                IBAMR_DO_ONCE(plate_free_dofs[0] = 1; plate_free_dofs[1] = 1; plate_free_dofs[2] = 0;
-                              ib_method_ops->setSolveRigidBodyVelocity(0, plate_free_dofs);
-                              navier_stokes_integrator->setStokesSolverNeedsInit(););
-            }
-
             if (time_integrator->atRegridPoint()) navier_stokes_integrator->setStokesSolverNeedsInit();
             if (ib_method_ops->flagRegrid())
             {
                 time_integrator->regridHierarchy();
                 navier_stokes_integrator->setStokesSolverNeedsInit();
             }
+
+            RDV U0;
+            ib_method_ops->getCurrentRigidBodyVelocity(0, U0);
+            U_stream << loop_time << "\t" << U0(0) << "\t" << U0(1) << "\t" << U0(2) 
+                     << "\t" << U0(3) << "\t" << U0(4) << "\t" << U0(5) << std::endl;
+
+            // Compute external gravity force on structure
+            struct0.F.setZero();
+            struct0.F(1) = - struct0.rho_excess *(4.0/3.0)* M_PI* std::pow(struct0.R,3) * G;
+
             time_integrator->advanceHierarchy(dt);
             loop_time += dt;
-
-            pout << "\n\nNet rigid force and torque on plate is : \n" << ib_method_ops->getNetRigidGeneralizedForce(0)
-                 << "\n\n";
 
             pout << "\n";
             pout << "At end       of timestep # " << iteration_num << "\n";
@@ -390,6 +424,11 @@ main(int argc, char* argv[])
             }
         }
 
+         if (SAMRAI_MPI::getRank() == 0)
+         {
+             U_stream.close();
+         }
+          
         // Cleanup boundary condition specification objects (when necessary).
         for (unsigned int d = 0; d < NDIM; ++d) delete u_bc_coefs[d];
 
@@ -397,7 +436,7 @@ main(int argc, char* argv[])
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
+    return true;
 } // main
 
 void

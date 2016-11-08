@@ -2,25 +2,43 @@
 include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
-SOURCES = main.cpp
-EXTRA_DIST  = input3d.sphere sphere_3d.vertex 
+EXAMPLE_DRIVER = ex_main.cpp
+GTEST_DRIVER   = test_main.cpp
+EXTRA_DIST  = input3d.sphere sphere_3d.vertex input3d.sphere.test
 
 EXTRA_PROGRAMS =
+GTESTS = 
+EXAMPLES =
 if SAMRAI3D_ENABLED
-EXTRA_PROGRAMS += main3d
+EXAMPLES += main3d
+GTESTS   += test3d
+EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 
 main3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
 main3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
-main3d_SOURCES = $(SOURCES)
+main3d_SOURCES = $(EXAMPLE_DRIVER)
 
-examples: $(EXTRA_PROGRAMS)
+test3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
+test3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
+test3d_SOURCES = $(GTEST_DRIVER)
+
+examples: $(EXAMPLES)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input3d.sphere $(PWD) ; \
 	  cp -f $(srcdir)/sphere_3d.vertex $(PWD) ; \
 	  cp -f $(srcdir)/check_sol.m $(PWD) ; \
 	  cp -f $(srcdir)/petsc_options.dat $(PWD) ; \
 	fi ;
+
+gtest: $(GTESTS)
+	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
+	  cp -f $(srcdir)/input3d.sphere* $(PWD) ; \
+	  cp -f $(srcdir)/sphere_3d.vertex $(PWD) ; \
+	  cp -f $(srcdir)/check_sol.m $(PWD) ; \
+	  cp -f $(srcdir)/petsc_options.dat $(PWD) ; \
+	fi ;
+	./test3d input3d.sphere.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

@@ -23,4 +23,5 @@ gtest:
 	@(cd adv_diff && make gtest) || exit 1;
 	@(cd IBFE/explicit && make gtest) || exit 1;
 	@(cd navier_stokes && make gtest) || exit 1;
+	@(cd advect && make gtest) || exit 1;
 
