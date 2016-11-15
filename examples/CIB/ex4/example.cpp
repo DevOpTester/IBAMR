@@ -123,7 +123,7 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *                                                                             *
  *******************************************************************************/
 bool
-run_example(int argc, char* argv[])
+run_example(int argc, char* argv[], double& end_time, double& end_u)
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
@@ -364,6 +364,7 @@ run_example(int argc, char* argv[])
             pout << "At beginning of timestep # " << iteration_num << "\n";
             pout << "Simulation time is " << loop_time << "\n";
 
+
             dt = time_integrator->getMaximumTimeStepSize();
 
             pout << "Advancing hierarchy by timestep size dt = " << dt << "\n";
@@ -378,7 +379,13 @@ run_example(int argc, char* argv[])
             ib_method_ops->getCurrentRigidBodyVelocity(0, U0);
             U_stream << loop_time << "\t" << U0(0) << "\t" << U0(1) << "\t" << U0(2) 
                      << "\t" << U0(3) << "\t" << U0(4) << "\t" << U0(5) << std::endl;
-
+            
+            // store velocity and loop time in variables passed to run_example as reference
+            // used to test accuracy relative to past preformance in test_main.cpp
+            end_u = std::abs(U0(1));
+            end_time = loop_time;
+            pout << "Velocity of rigid body is " << std::setprecision(10) << end_u;
+            
             // Compute external gravity force on structure
             struct0.F.setZero();
             struct0.F(1) = - struct0.rho_excess *(4.0/3.0)* M_PI* std::pow(struct0.R,3) * G;

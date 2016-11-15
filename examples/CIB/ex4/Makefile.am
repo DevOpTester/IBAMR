@@ -4,7 +4,8 @@ include $(top_srcdir)/config/Make-rules
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp
 GTEST_DRIVER   = test_main.cpp
-EXTRA_DIST  = input3d.sphere sphere_3d.vertex input3d.sphere.test
+EXTRA_DIST  = input3d.sphere sphere_3d.vertex input3d.sphere.long_test
+EXTRA_DIST += input3d.sphere.short_test
 
 EXTRA_PROGRAMS =
 GTESTS = 
@@ -38,7 +39,15 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/check_sol.m $(PWD) ; \
 	  cp -f $(srcdir)/petsc_options.dat $(PWD) ; \
 	fi ;
-	./test3d input3d.sphere.test
+	./test3d input3d.sphere.short_test
+gtest-full: $(GTESTS)
+	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
+	  cp -f $(srcdir)/input3d.sphere* $(PWD) ; \
+	  cp -f $(srcdir)/sphere_3d.vertex $(PWD) ; \
+	  cp -f $(srcdir)/check_sol.m $(PWD) ; \
+	  cp -f $(srcdir)/petsc_options.dat $(PWD) ; \
+	fi ;
+	./test3d input3d.sphere.long_test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
