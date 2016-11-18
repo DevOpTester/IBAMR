@@ -11,7 +11,7 @@ set -o pipefail
   CPPFLAGS="-DOMPI_SKIP_MPICXX" \
   LDFLAGS="-lgtest" \
   --with-hypre=$PETSC_DIR/$PETSC_ARCH \
-  --with-samrai=$HOME/samrai/2.4.4/linux-debug \
+  --with-samrai=$SAMRAI_DIR \
   --with-hdf5=$HOME/linux/hdf5/1.8.16 \
   --with-blitz=$HOME/linux/blitz/0.10 \
   --with-silo=$HOME/linux/silo/4.10 \
@@ -21,4 +21,5 @@ set -o pipefail
   --with-libmesh-method=dbg \
   --config-cache
 make -kj4 lib
-make -kj4 examples
+cd examples 
+make gtest-long

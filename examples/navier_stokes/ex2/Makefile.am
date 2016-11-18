@@ -33,6 +33,9 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	fi ;
 	./test2d input2d.test
+
+gtest-long:
+	make gtest
 	
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

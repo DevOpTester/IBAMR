@@ -39,6 +39,9 @@ gtest: $(GTESTS)
 	fi ;
 	./test3d input3d
 
+gtest-long:
+	make gtest
+
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \

@@ -51,6 +51,9 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/README $(PWD) ; \
 	fi ;
 	./test2d input2d.test
+
+gtest-long:
+	make gtest
 	./test3d input3d.test
 
 clean-local:

@@ -813,6 +813,11 @@ examples:
 	@(cd explicit && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd implicit && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 
+gtest: 
+	@(cd explicit && make gtest) || exit 1;
+
+gtest-long:
+
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

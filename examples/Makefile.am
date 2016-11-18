@@ -21,7 +21,17 @@ examples:
 	
 gtest:
 	@(cd adv_diff && make gtest) || exit 1;
-	@(cd IBFE/explicit && make gtest) || exit 1;
+	@(cd IBFE && make gtest) || exit 1;
 	@(cd navier_stokes && make gtest) || exit 1;
 	@(cd advect && make gtest) || exit 1;
+	@(cd CIB && make gtest) || exit 1;
+	@(cd IB && make gtest) || exit 1;
+	@(cd CIBFE && make gtest) || exit 1;
 
+gtest-long:
+	@(cd adv_diff && make gtest-long) || exit 1;
+	@(cd IBFE && make gtest-long) || exit 1;
+	@(cd navier_stokes && make gtest-long) || exit 1;
+	@(cd advect && make gtest-long) || exit 1;
+	@(cd CIB && make gtest-long) || exit 1;
+	@(cd IB && make gtest-long) || exit 1;

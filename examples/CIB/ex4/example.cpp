@@ -384,7 +384,8 @@ run_example(int argc, char* argv[], double& end_time, double& end_u)
             // used to test accuracy relative to past preformance in test_main.cpp
             end_u = std::abs(U0(1));
             end_time = loop_time;
-            pout << "Velocity of rigid body is " << std::setprecision(10) << end_u;
+            pout << "Velocity of rigid body is " << std::setprecision(10) 
+            << end_u << "\n";
             
             // Compute external gravity force on structure
             struct0.F.setZero();

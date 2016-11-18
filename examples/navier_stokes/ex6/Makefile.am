@@ -33,6 +33,9 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	fi ;
 
+gtest-long:
+	make gtest
+
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \

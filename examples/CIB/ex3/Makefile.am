@@ -36,6 +36,9 @@ gtest: $(GTESTS)
 	fi ;
 	./test2d input2d.nozzle.test
 
+gtest-long:
+	make gtest
+
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
