@@ -856,7 +856,7 @@ gtest-full: $(GTESTS)
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  rm -f $(builddir)/input3d.sphere ; \
+	  rm -f $(builddir)/input3d.sphere* ; \
           rm -f $(builddir)/sphere_3d.vertex ; \
 	  rm -f $(builddir)/check_sol.m ; \
 	  rm -f $(builddir)/petsc_options.dat ; \
