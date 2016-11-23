@@ -42,16 +42,16 @@
 #include <StandardTagAndInitialize.h>
 
 // Headers for application-specific algorithm/data structure objects
-#include <ibamr/GeneralizedIBMethod.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
-#include <ibamr/IBKirchhoffRodForceGen.h>
+#include <ibamr/IBMethod.h>
+#include <ibamr/IBStandardForceGen.h>
 #include <ibamr/IBStandardInitializer.h>
-#include <ibamr/INSCollocatedHierarchyIntegrator.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
+#include <ibamr/INSStaggeredStochasticForcing.h>
+#include <ibamr/RNG.h>
 #include <ibtk/AppInitializer.h>
 #include <ibtk/LData.h>
 #include <ibtk/LDataManager.h>
-#include <ibtk/LEInteractor.h>
 #include <ibtk/muParserCartGridFunction.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
@@ -64,40 +64,8 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
                  LDataManager* l_data_manager,
                  const int iteration_num,
                  const double loop_time,
+                 const int output_level,
                  const string& data_dump_dirname);
-
-// Basic 4-point kernel function kernel.
-inline double
-ib4_kernel_fcn(double r)
-{
-    r = std::abs(r);
-    if (r < 1.0)
-    {
-        const double t2 = r * r;
-        const double t6 = sqrt(-0.4e1 * t2 + 0.4e1 * r + 0.1e1);
-        return -r / 0.4e1 + 0.3e1 / 0.8e1 + t6 / 0.8e1;
-    }
-    else if (r < 2.0)
-    {
-        const double t2 = r * r;
-        const double t6 = sqrt(0.12e2 * r - 0.7e1 - 0.4e1 * t2);
-        return -r / 0.4e1 + 0.5e1 / 0.8e1 - t6 / 0.8e1;
-    }
-    else
-    {
-        return 0.0;
-    }
-} // ib4_kernel_fcn
-
-// Specified kernel-function width.
-double W = 4.0;
-
-// Re-scaled 4-point kernel function kernel
-inline double
-scaled_ib4_kernel_fcn(double r)
-{
-    return ib4_kernel_fcn(r / (W / 4.0)) / (W / 4.0);
-} // scaled_ib4_kernel_fcn
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -110,8 +78,8 @@ scaled_ib4_kernel_fcn(double r)
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
@@ -126,11 +94,6 @@ main(int argc, char* argv[])
         // and enable file logging.
         Pointer<AppInitializer> app_initializer = new AppInitializer(argc, argv, "IB.log");
         Pointer<Database> input_db = app_initializer->getInputDatabase();
-
-        // Setup user-defined kernel function.
-        W = input_db->getDoubleWithDefault("W", W);
-        LEInteractor::s_kernel_fcn = &scaled_ib4_kernel_fcn;
-        LEInteractor::s_kernel_fcn_stencil_size = std::ceil(W);
 
         // Get various standard options set in the input file.
         const bool dump_viz_data = app_initializer->dumpVizData();
@@ -156,28 +119,10 @@ main(int argc, char* argv[])
         // Create major algorithm and data objects that comprise the
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
-        Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
-        const string solver_type =
-            app_initializer->getComponentDatabase("Main")->getStringWithDefault("solver_type", "STAGGERED");
-        if (solver_type == "STAGGERED")
-        {
-            navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
-                "INSStaggeredHierarchyIntegrator",
-                app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
-        }
-        else if (solver_type == "COLLOCATED")
-        {
-            navier_stokes_integrator = new INSCollocatedHierarchyIntegrator(
-                "INSCollocatedHierarchyIntegrator",
-                app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
-        }
-        else
-        {
-            TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
-                                                   << "Valid options are: COLLOCATED, STAGGERED");
-        }
-        Pointer<GeneralizedIBMethod> ib_method_ops = new GeneralizedIBMethod(
-            "GeneralizedIBMethod", app_initializer->getComponentDatabase("GeneralizedIBMethod"));
+        Pointer<INSStaggeredHierarchyIntegrator> navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
+            "INSStaggeredHierarchyIntegrator",
+            app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
+        Pointer<IBMethod> ib_method_ops = new IBMethod("IBMethod", app_initializer->getComponentDatabase("IBMethod"));
         Pointer<IBHierarchyIntegrator> time_integrator =
             new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
                                               app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
@@ -204,8 +149,8 @@ main(int argc, char* argv[])
         Pointer<IBStandardInitializer> ib_initializer = new IBStandardInitializer(
             "IBStandardInitializer", app_initializer->getComponentDatabase("IBStandardInitializer"));
         ib_method_ops->registerLInitStrategy(ib_initializer);
-        Pointer<IBKirchhoffRodForceGen> ib_force_and_torque_fcn = new IBKirchhoffRodForceGen();
-        ib_method_ops->registerIBKirchhoffRodForceGen(ib_force_and_torque_fcn);
+        Pointer<IBStandardForceGen> ib_force_fcn = new IBStandardForceGen();
+        ib_method_ops->registerIBLagrangianForceFunction(ib_force_fcn);
 
         // Create Eulerian initial condition specification objects.
         if (input_db->keyExists("VelocityInitialConditions"))
@@ -239,23 +184,39 @@ main(int argc, char* argv[])
                 ostringstream bc_coefs_name_stream;
                 bc_coefs_name_stream << "u_bc_coefs_" << d;
                 const string bc_coefs_name = bc_coefs_name_stream.str();
-
                 ostringstream bc_coefs_db_name_stream;
                 bc_coefs_db_name_stream << "VelocityBcCoefs_" << d;
                 const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
-
                 u_bc_coefs[d] = new muParserRobinBcCoefs(
                     bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
             }
             navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
         }
 
-        // Create Eulerian body force function specification objects.
-        if (input_db->keyExists("ForcingFunction"))
+        // Create stochastic forcing function specification object.
+        Pointer<INSStaggeredStochasticForcing> f_fcn =
+            new INSStaggeredStochasticForcing("INSStaggeredStochasticForcing",
+                                              app_initializer->getComponentDatabase("INSStaggeredStochasticForcing"),
+                                              navier_stokes_integrator);
+        time_integrator->registerBodyForceFunction(f_fcn);
+
+        // Seed the random number generator.
+        int seed = 0;
+        if (input_db->keyExists("SEED"))
         {
-            Pointer<CartGridFunction> f_fcn = new muParserCartGridFunction(
-                "f_fcn", app_initializer->getComponentDatabase("ForcingFunction"), grid_geometry);
-            time_integrator->registerBodyForceFunction(f_fcn);
+            seed = input_db->getInteger("SEED");
+        }
+        else
+        {
+            TBOX_ERROR("Key data `seed' not found in input.");
+        }
+        RNG::parallel_seed(seed);
+
+        // We are primarily interested in the Lagrangian data so we can skip writing Eulerian data:
+        int output_level = 1; // -1=none, 0=txt, 1=silo+txt, 2=visit+silo+txt, 3=visit+SAMRAI+silo+txt, >3=verbose
+        if (input_db->keyExists("OUTPUT_LEVEL"))
+        {
+            output_level = input_db->getInteger("OUTPUT_LEVEL");
         }
 
         // Set up visualization plot file writers.
@@ -292,34 +253,50 @@ main(int argc, char* argv[])
         double loop_time = time_integrator->getIntegratorTime();
         if (dump_viz_data && uses_visit)
         {
-            pout << "\n\nWriting visualization files...\n\n";
+            if (output_level >= 0)
+                pout << "\nWriting visualization files at timestep # " << iteration_num << " t=" << loop_time << "\n";
             time_integrator->setupPlotData();
-            visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-            silo_data_writer->writePlotData(iteration_num, loop_time);
+            if (output_level >= 2) visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+            if (output_level >= 1) silo_data_writer->writePlotData(iteration_num, loop_time);
+        }
+        if (dump_postproc_data)
+        {
+            output_data(patch_hierarchy,
+                        navier_stokes_integrator,
+                        ib_method_ops->getLDataManager(),
+                        iteration_num,
+                        loop_time,
+                        output_level,
+                        postproc_data_dump_dirname);
         }
 
         // Main time step loop.
         double loop_time_end = time_integrator->getEndTime();
-        double dt = 0.0;
         while (!MathUtilities<double>::equalEps(loop_time, loop_time_end) && time_integrator->stepsRemaining())
         {
             iteration_num = time_integrator->getIntegratorStep();
             loop_time = time_integrator->getIntegratorTime();
 
-            pout << "\n";
-            pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-            pout << "At beginning of timestep # " << iteration_num << "\n";
-            pout << "Simulation time is " << loop_time << "\n";
+            if (output_level > 3)
+            {
+                pout << "\n";
+                pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+                pout << "At beginning of timestep # " << iteration_num << "\n";
+                pout << "Simulation time is " << loop_time << "\n";
+            }
 
-            dt = time_integrator->getMaximumTimeStepSize();
+            const double dt = time_integrator->getMaximumTimeStepSize();
             time_integrator->advanceHierarchy(dt);
             loop_time += dt;
 
-            pout << "\n";
-            pout << "At end       of timestep # " << iteration_num << "\n";
-            pout << "Simulation time is " << loop_time << "\n";
-            pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-            pout << "\n";
+            if (output_level > 3)
+            {
+                pout << "\n";
+                pout << "At end       of timestep # " << iteration_num << "\n";
+                pout << "Simulation time is " << loop_time << "\n";
+                pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+                pout << "\n";
+            }
 
             // At specified intervals, write visualization and restart files,
             // print out timer data, and store hierarchy data for post
@@ -328,10 +305,12 @@ main(int argc, char* argv[])
             const bool last_step = !time_integrator->stepsRemaining();
             if (dump_viz_data && uses_visit && (iteration_num % viz_dump_interval == 0 || last_step))
             {
-                pout << "\nWriting visualization files...\n\n";
+                if (output_level >= 0)
+                    pout << "\nWriting visualization files at timestep # " << iteration_num << " t=" << loop_time
+                         << "\n";
                 time_integrator->setupPlotData();
-                visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
-                silo_data_writer->writePlotData(iteration_num, loop_time);
+                if (output_level >= 2) visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+                if (output_level >= 1) silo_data_writer->writePlotData(iteration_num, loop_time);
             }
             if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
             {
@@ -350,6 +329,7 @@ main(int argc, char* argv[])
                             ib_method_ops->getLDataManager(),
                             iteration_num,
                             loop_time,
+                            output_level,
                             postproc_data_dump_dirname);
             }
         }
@@ -362,7 +342,7 @@ main(int argc, char* argv[])
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
+    return true;
 } // main
 
 void
@@ -371,43 +351,52 @@ output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
             LDataManager* l_data_manager,
             const int iteration_num,
             const double loop_time,
+            const int output_level,
             const string& data_dump_dirname)
 {
-    plog << "writing hierarchy data at iteration " << iteration_num << " to disk" << endl;
-    plog << "simulation time is " << loop_time << endl;
-
-    // Write Cartesian data.
+    if (output_level >= 0)
+    {
+        pout << "\nWriting output files at timestep # " << iteration_num << " t=" << loop_time << "\n";
+    }
     string file_name = data_dump_dirname + "/" + "hier_data.";
     char temp_buf[128];
     sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
     file_name += temp_buf;
-    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
-    hier_db->create(file_name);
-    VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
-    ComponentSelector hier_data;
-    hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getVelocityVariable(),
-                                                           navier_stokes_integrator->getCurrentContext()));
-    hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getPressureVariable(),
-                                                           navier_stokes_integrator->getCurrentContext()));
-    patch_hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
-    hier_db->putDouble("loop_time", loop_time);
-    hier_db->putInteger("iteration_num", iteration_num);
-    hier_db->close();
+
+    // Write Cartesian data.
+    if (output_level >= 3)
+    {
+        Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+        hier_db->create(file_name);
+        VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
+        ComponentSelector hier_data;
+        hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getVelocityVariable(),
+                                                               navier_stokes_integrator->getCurrentContext()));
+        hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getPressureVariable(),
+                                                               navier_stokes_integrator->getCurrentContext()));
+        patch_hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+        hier_db->putDouble("loop_time", loop_time);
+        hier_db->putInteger("iteration_num", iteration_num);
+        hier_db->close();
+    }
 
     // Write Lagrangian data.
-    const int finest_hier_level = patch_hierarchy->getFinestLevelNumber();
-    Pointer<LData> X_data = l_data_manager->getLData("X", finest_hier_level);
-    Vec X_petsc_vec = X_data->getVec();
-    Vec X_lag_vec;
-    VecDuplicate(X_petsc_vec, &X_lag_vec);
-    l_data_manager->scatterPETScToLagrangian(X_petsc_vec, X_lag_vec, finest_hier_level);
-    file_name = data_dump_dirname + "/" + "X.";
-    sprintf(temp_buf, "%05d", iteration_num);
-    file_name += temp_buf;
-    PetscViewer viewer;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, file_name.c_str(), &viewer);
-    VecView(X_lag_vec, viewer);
-    PetscViewerDestroy(&viewer);
-    VecDestroy(&X_lag_vec);
+    if (output_level >= 0)
+    {
+        const int finest_hier_level = patch_hierarchy->getFinestLevelNumber();
+        Pointer<LData> X_data = l_data_manager->getLData("X", finest_hier_level);
+        Vec X_petsc_vec = X_data->getVec();
+        Vec X_lag_vec;
+        VecDuplicate(X_petsc_vec, &X_lag_vec);
+        l_data_manager->scatterPETScToLagrangian(X_petsc_vec, X_lag_vec, finest_hier_level);
+        file_name = data_dump_dirname + "/" + "X.";
+        sprintf(temp_buf, "%05d", iteration_num);
+        file_name += temp_buf;
+        PetscViewer viewer;
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD, file_name.c_str(), &viewer);
+        VecView(X_lag_vec, viewer);
+        PetscViewerDestroy(&viewer);
+        VecDestroy(&X_lag_vec);
+    }
     return;
 } // output_data

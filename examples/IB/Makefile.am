@@ -11,3 +11,4 @@ gtest:
 	@(cd explicit && make gtest) || exit 1;
 
 gtest-long:
+	@(cd explicit && make gtest-long) || exit 1;

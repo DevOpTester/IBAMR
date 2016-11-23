@@ -42,16 +42,16 @@
 #include <StandardTagAndInitialize.h>
 
 // Headers for application-specific algorithm/data structure objects
+#include <ibamr/GeneralizedIBMethod.h>
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
-#include <ibamr/IBMethod.h>
-#include <ibamr/IBStandardForceGen.h>
+#include <ibamr/IBKirchhoffRodForceGen.h>
 #include <ibamr/IBStandardInitializer.h>
 #include <ibamr/INSCollocatedHierarchyIntegrator.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
-#include <ibamr/StaggeredStokesOpenBoundaryStabilizer.h>
 #include <ibtk/AppInitializer.h>
 #include <ibtk/LData.h>
 #include <ibtk/LDataManager.h>
+#include <ibtk/LEInteractor.h>
 #include <ibtk/muParserCartGridFunction.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
@@ -59,11 +59,45 @@
 #include <ibamr/app_namespaces.h>
 
 // Function prototypes
-void postprocess_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
-                      LDataManager* l_data_manager,
-                      const double loop_time,
-                      ostream& C_D_stream,
-                      ostream& C_L_stream);
+void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
+                 Pointer<INSHierarchyIntegrator> navier_stokes_integrator,
+                 LDataManager* l_data_manager,
+                 const int iteration_num,
+                 const double loop_time,
+                 const string& data_dump_dirname);
+
+// Basic 4-point kernel function kernel.
+inline double
+ib4_kernel_fcn(double r)
+{
+    r = std::abs(r);
+    if (r < 1.0)
+    {
+        const double t2 = r * r;
+        const double t6 = sqrt(-0.4e1 * t2 + 0.4e1 * r + 0.1e1);
+        return -r / 0.4e1 + 0.3e1 / 0.8e1 + t6 / 0.8e1;
+    }
+    else if (r < 2.0)
+    {
+        const double t2 = r * r;
+        const double t6 = sqrt(0.12e2 * r - 0.7e1 - 0.4e1 * t2);
+        return -r / 0.4e1 + 0.5e1 / 0.8e1 - t6 / 0.8e1;
+    }
+    else
+    {
+        return 0.0;
+    }
+} // ib4_kernel_fcn
+
+// Specified kernel-function width.
+double W = 4.0;
+
+// Re-scaled 4-point kernel function kernel
+inline double
+scaled_ib4_kernel_fcn(double r)
+{
+    return ib4_kernel_fcn(r / (W / 4.0)) / (W / 4.0);
+} // scaled_ib4_kernel_fcn
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -76,8 +110,8 @@ void postprocess_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
@@ -93,14 +127,28 @@ main(int argc, char* argv[])
         Pointer<AppInitializer> app_initializer = new AppInitializer(argc, argv, "IB.log");
         Pointer<Database> input_db = app_initializer->getInputDatabase();
 
+        // Setup user-defined kernel function.
+        W = input_db->getDoubleWithDefault("W", W);
+        LEInteractor::s_kernel_fcn = &scaled_ib4_kernel_fcn;
+        LEInteractor::s_kernel_fcn_stencil_size = std::ceil(W);
+
         // Get various standard options set in the input file.
         const bool dump_viz_data = app_initializer->dumpVizData();
         const int viz_dump_interval = app_initializer->getVizDumpInterval();
         const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
 
+        const bool is_from_restart = app_initializer->isFromRestart();
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
         const string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
+
+        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
+        const int postproc_data_dump_interval = app_initializer->getPostProcessingDataDumpInterval();
+        const string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
+        if (dump_postproc_data && (postproc_data_dump_interval > 0) && !postproc_data_dump_dirname.empty())
+        {
+            Utilities::recursiveMkdir(postproc_data_dump_dirname);
+        }
 
         const bool dump_timer_data = app_initializer->dumpTimerData();
         const int timer_dump_interval = app_initializer->getTimerDumpInterval();
@@ -128,7 +176,8 @@ main(int argc, char* argv[])
             TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
                                                    << "Valid options are: COLLOCATED, STAGGERED");
         }
-        Pointer<IBMethod> ib_method_ops = new IBMethod("IBMethod", app_initializer->getComponentDatabase("IBMethod"));
+        Pointer<GeneralizedIBMethod> ib_method_ops = new GeneralizedIBMethod(
+            "GeneralizedIBMethod", app_initializer->getComponentDatabase("GeneralizedIBMethod"));
         Pointer<IBHierarchyIntegrator> time_integrator =
             new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
                                               app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
@@ -155,9 +204,8 @@ main(int argc, char* argv[])
         Pointer<IBStandardInitializer> ib_initializer = new IBStandardInitializer(
             "IBStandardInitializer", app_initializer->getComponentDatabase("IBStandardInitializer"));
         ib_method_ops->registerLInitStrategy(ib_initializer);
-        Pointer<IBStandardForceGen> ib_force_fcn = new IBStandardForceGen();
-        ib_method_ops->registerIBLagrangianForceFunction(ib_force_fcn);
-        LDataManager* l_data_manager = ib_method_ops->getLDataManager();
+        Pointer<IBKirchhoffRodForceGen> ib_force_and_torque_fcn = new IBKirchhoffRodForceGen();
+        ib_method_ops->registerIBKirchhoffRodForceGen(ib_force_and_torque_fcn);
 
         // Create Eulerian initial condition specification objects.
         if (input_db->keyExists("VelocityInitialConditions"))
@@ -175,39 +223,36 @@ main(int argc, char* argv[])
         }
 
         // Create Eulerian boundary condition specification objects (when necessary).
-        vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM, static_cast<RobinBcCoefStrategy<NDIM>*>(NULL));
-        const bool periodic_domain = grid_geometry->getPeriodicShift().min() > 0;
-        if (!periodic_domain)
+        const IntVector<NDIM>& periodic_shift = grid_geometry->getPeriodicShift();
+        vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM);
+        if (periodic_shift.min() > 0)
+        {
+            for (unsigned int d = 0; d < NDIM; ++d)
+            {
+                u_bc_coefs[d] = NULL;
+            }
+        }
+        else
         {
             for (unsigned int d = 0; d < NDIM; ++d)
             {
                 ostringstream bc_coefs_name_stream;
                 bc_coefs_name_stream << "u_bc_coefs_" << d;
                 const string bc_coefs_name = bc_coefs_name_stream.str();
+
                 ostringstream bc_coefs_db_name_stream;
                 bc_coefs_db_name_stream << "VelocityBcCoefs_" << d;
                 const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
+
                 u_bc_coefs[d] = new muParserRobinBcCoefs(
                     bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
             }
             navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
-            if (solver_type == "STAGGERED" && input_db->keyExists("BoundaryStabilization"))
-            {
-                time_integrator->registerBodyForceFunction(new StaggeredStokesOpenBoundaryStabilizer(
-                    "BoundaryStabilization",
-                    app_initializer->getComponentDatabase("BoundaryStabilization"),
-                    navier_stokes_integrator,
-                    grid_geometry));
-            }
         }
 
         // Create Eulerian body force function specification objects.
         if (input_db->keyExists("ForcingFunction"))
         {
-            if (input_db->keyExists("BoundaryStabilization"))
-            {
-                TBOX_ERROR("Cannot currently use boundary stabilization with additional body forcing");
-            }
             Pointer<CartGridFunction> f_fcn = new muParserCartGridFunction(
                 "f_fcn", app_initializer->getComponentDatabase("ForcingFunction"), grid_geometry);
             time_integrator->registerBodyForceFunction(f_fcn);
@@ -219,8 +264,8 @@ main(int argc, char* argv[])
         if (uses_visit)
         {
             ib_initializer->registerLSiloDataWriter(silo_data_writer);
-            ib_method_ops->registerLSiloDataWriter(silo_data_writer);
             time_integrator->registerVisItDataWriter(visit_data_writer);
+            ib_method_ops->registerLSiloDataWriter(silo_data_writer);
         }
 
         // Initialize hierarchy configuration and data on all patches.
@@ -231,17 +276,16 @@ main(int argc, char* argv[])
         ib_initializer.setNull();
         app_initializer.setNull();
 
-        // Setup Silo writer.
-        if (silo_data_writer)
-        {
-            const int finest_hier_level = patch_hierarchy->getFinestLevelNumber();
-            Pointer<LData> F_data = l_data_manager->getLData("F", finest_hier_level);
-            silo_data_writer->registerVariableData("F", F_data, finest_hier_level);
-        }
-
         // Print the input database contents to the log file.
         plog << "Input database:\n";
         input_db->printClassData(plog);
+
+        // Write restart data before starting main time integration loop.
+        if (dump_restart_data && !is_from_restart)
+        {
+            pout << "\nWriting restart files...\n\n";
+            RestartManager::getManager()->writeRestartFile(restart_dump_dirname, 0);
+        }
 
         // Write out initial visualization data.
         int iteration_num = time_integrator->getIntegratorStep();
@@ -252,14 +296,6 @@ main(int argc, char* argv[])
             time_integrator->setupPlotData();
             visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             silo_data_writer->writePlotData(iteration_num, loop_time);
-        }
-
-        // Streams to write-out data.
-        std::ofstream C_D_stream, C_L_stream;
-        if (SAMRAI_MPI::getRank() == 0)
-        {
-            C_D_stream.open("C_D.curve", ios_base::out | ios_base::trunc);
-            C_L_stream.open("C_L.curve", ios_base::out | ios_base::trunc);
         }
 
         // Main time step loop.
@@ -307,14 +343,15 @@ main(int argc, char* argv[])
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
             }
-            postprocess_data(patch_hierarchy, l_data_manager, loop_time, C_D_stream, C_L_stream);
-        }
-
-        // Close the logging streams.
-        if (SAMRAI_MPI::getRank() == 0)
-        {
-            C_D_stream.close();
-            C_L_stream.close();
+            if (dump_postproc_data && (iteration_num % postproc_data_dump_interval == 0 || last_step))
+            {
+                output_data(patch_hierarchy,
+                            navier_stokes_integrator,
+                            ib_method_ops->getLDataManager(),
+                            iteration_num,
+                            loop_time,
+                            postproc_data_dump_dirname);
+            }
         }
 
         // Cleanup Eulerian boundary condition specification objects (when
@@ -325,38 +362,52 @@ main(int argc, char* argv[])
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
+    return true;
 } // main
 
 void
-postprocess_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
-                 LDataManager* l_data_manager,
-                 const double loop_time,
-                 ostream& C_D_stream,
-                 ostream& C_L_stream)
+output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
+            Pointer<INSHierarchyIntegrator> navier_stokes_integrator,
+            LDataManager* l_data_manager,
+            const int iteration_num,
+            const double loop_time,
+            const string& data_dump_dirname)
 {
-    // Compute lift and drag forces.
+    plog << "writing hierarchy data at iteration " << iteration_num << " to disk" << endl;
+    plog << "simulation time is " << loop_time << endl;
+
+    // Write Cartesian data.
+    string file_name = data_dump_dirname + "/" + "hier_data.";
+    char temp_buf[128];
+    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
+    file_name += temp_buf;
+    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+    hier_db->create(file_name);
+    VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
+    ComponentSelector hier_data;
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getVelocityVariable(),
+                                                           navier_stokes_integrator->getCurrentContext()));
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getPressureVariable(),
+                                                           navier_stokes_integrator->getCurrentContext()));
+    patch_hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+    hier_db->putDouble("loop_time", loop_time);
+    hier_db->putInteger("iteration_num", iteration_num);
+    hier_db->close();
+
+    // Write Lagrangian data.
     const int finest_hier_level = patch_hierarchy->getFinestLevelNumber();
-    Pointer<LData> F_data = l_data_manager->getLData("F", finest_hier_level);
-    const boost::multi_array_ref<double, 2>& F_arr = *F_data->getLocalFormVecArray();
-    double F[NDIM];
-    for (unsigned int d = 0; d < NDIM; ++d) F[d] = 0.0;
-    for (unsigned int k = 0; k < F_data->getLocalNodeCount(); ++k)
-    {
-        for (unsigned int d = 0; d < NDIM; ++d)
-        {
-            F[d] += F_arr[k][d];
-        }
-    }
-    SAMRAI_MPI::sumReduction(F, NDIM);
-    if (SAMRAI_MPI::getRank() == 0)
-    {
-        C_D_stream.precision(12);
-        C_D_stream.setf(ios::fixed, ios::floatfield);
-        C_D_stream << loop_time << " " << -F[0] << endl;
-        C_L_stream.precision(12);
-        C_L_stream.setf(ios::fixed, ios::floatfield);
-        C_L_stream << loop_time << " " << -F[1] << endl;
-    }
+    Pointer<LData> X_data = l_data_manager->getLData("X", finest_hier_level);
+    Vec X_petsc_vec = X_data->getVec();
+    Vec X_lag_vec;
+    VecDuplicate(X_petsc_vec, &X_lag_vec);
+    l_data_manager->scatterPETScToLagrangian(X_petsc_vec, X_lag_vec, finest_hier_level);
+    file_name = data_dump_dirname + "/" + "X.";
+    sprintf(temp_buf, "%05d", iteration_num);
+    file_name += temp_buf;
+    PetscViewer viewer;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, file_name.c_str(), &viewer);
+    VecView(X_lag_vec, viewer);
+    PetscViewerDestroy(&viewer);
+    VecDestroy(&X_lag_vec);
     return;
-} // postprocess_data
+} // output_data
