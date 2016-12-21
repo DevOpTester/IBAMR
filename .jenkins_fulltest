@@ -2,9 +2,9 @@
 set -e 
 set -o pipefail
 ./configure \
-  CFLAGS="-g -O1 -Wall" \
-  CXXFLAGS="-g -O1 -Wall" \
-  FCFLAGS="-g -O1 -Wall" \
+  CFLAGS="-Wall" \
+  CXXFLAGS="-Wall" \
+  FCFLAGS="-Wall" \
   CC="ccache $HOME/linux/openmpi/1.10.2/bin/mpicc" \
   CXX="ccache $HOME/linux/openmpi/1.10.2/bin/mpicxx" \
   FC=$HOME/linux/openmpi/1.10.2/bin/mpif90 \
@@ -20,6 +20,7 @@ set -o pipefail
   --with-libmesh=$HOME/linux/libmesh/1.0.0/1.0.0-debug \
   --with-libmesh-method=dbg \
   --config-cache
+
 make -kj4 lib
 cd examples 
 make gtest-long
