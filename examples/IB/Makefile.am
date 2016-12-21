@@ -9,6 +9,8 @@ examples:
 
 gtest: 
 	@(cd explicit && make gtest) || exit 1;
+	@(cd implicit && make gtest) || exit 1;
 
 gtest-long:
 	@(cd explicit && make gtest-long) || exit 1;
+	@(cd implicit && make gtest-long) || exit 1;

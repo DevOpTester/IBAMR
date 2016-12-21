@@ -7,6 +7,13 @@ ACLOCAL_AMFLAGS = -I m4
 lib: all
 examples: lib
 	@(cd examples && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
+
+gtest:
+	@(cd examples && make gtest) || exit 1;
+
+gtest-long:
+	@(cd examples && make gtest-long) || exit 1;
+
 install-exec-local:
 	@echo "===================================================================="
 	@echo "===================================================================="

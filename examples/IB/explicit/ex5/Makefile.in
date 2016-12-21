@@ -905,11 +905,10 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/input{2,3}d* $(PWD) ; \
 	  cp -f $(srcdir)/points{2,3}d.vertex $(PWD) ; \
 	fi ;
-	./test2d input2d.test
 
 gtest-long:
 	make gtest
-	./test3d input3d.test
+
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \

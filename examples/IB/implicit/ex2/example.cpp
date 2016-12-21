@@ -76,8 +76,8 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
  *    executable <input file name> <restart directory> <restart number>        *
  *                                                                             *
  *******************************************************************************/
-int
-main(int argc, char* argv[])
+bool
+run_example(int argc, char* argv[])
 {
     // Initialize PETSc, MPI, and SAMRAI.
     PetscInitialize(&argc, &argv, NULL, NULL);
@@ -98,7 +98,6 @@ main(int argc, char* argv[])
         const int viz_dump_interval = app_initializer->getVizDumpInterval();
         const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
 
-        const bool is_from_restart = app_initializer->isFromRestart();
         const bool dump_restart_data = app_initializer->dumpRestartData();
         const int restart_dump_interval = app_initializer->getRestartDumpInterval();
         const string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
@@ -207,8 +206,8 @@ main(int argc, char* argv[])
         if (uses_visit)
         {
             ib_initializer->registerLSiloDataWriter(silo_data_writer);
-            time_integrator->registerVisItDataWriter(visit_data_writer);
             ib_method_ops->registerLSiloDataWriter(silo_data_writer);
+            time_integrator->registerVisItDataWriter(visit_data_writer);
         }
 
         // Initialize hierarchy configuration and data on all patches.
@@ -222,13 +221,6 @@ main(int argc, char* argv[])
         // Print the input database contents to the log file.
         plog << "Input database:\n";
         input_db->printClassData(plog);
-
-        // Write restart data before starting main time integration loop.
-        if (dump_restart_data && !is_from_restart)
-        {
-            pout << "\nWriting restart files...\n\n";
-            RestartManager::getManager()->writeRestartFile(restart_dump_dirname, 0);
-        }
 
         // Write out initial visualization data.
         int iteration_num = time_integrator->getIntegratorStep();
@@ -305,8 +297,8 @@ main(int argc, char* argv[])
 
     SAMRAIManager::shutdown();
     PetscFinalize();
-    return 0;
-} // main
+    return true;
+} // run_example
 
 void
 output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,

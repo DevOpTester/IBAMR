@@ -814,6 +814,11 @@ examples:
 	@(cd ex1 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd ex2 && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 
+gtest:
+	echo "IB/implicit test currently disabled"
+gtest-long:	
+	echo "IB/implicit test currently disabled"
+
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
