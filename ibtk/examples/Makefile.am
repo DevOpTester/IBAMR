@@ -7,7 +7,6 @@ all:
 	  $(MAKE) examples ; \
 	fi ;
 
-
 ## Standard make targets.
 examples:
 	@(cd CCLaplace   && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
@@ -17,3 +16,14 @@ examples:
 	@(cd SCLaplace   && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd SCPoisson   && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 	@(cd VCLaplace   && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
+
+
+gtest:
+	@(cd CCPoisson   && make gtest) || exit 1;
+	@(cd PETScOps    && make gtest) || exit 1;
+	@(cd PhysBdryOps && make gtest) || exit 1;
+
+gtest-long:
+	@(cd CCPoisson   && make gtest-long) || exit 1;
+	@(cd PETScOps    && make gtest-long) || exit 1;
+	@(cd PhysBdryOps && make gtest-long) || exit 1;

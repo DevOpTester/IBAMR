@@ -27,6 +27,8 @@ config_rm_cache(){
     config_with_cache
 }
 config_with_cache || config_rm_cache
+cd ibtk
+config_with_cache || config_rm_cache
+cd ..
 make -kj4 lib
-cd examples
 make gtest
