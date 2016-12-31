@@ -24,6 +24,10 @@ static const int MAX_IDX = 2;
 #define TEST_CASE_NAME IBFE_ex0_3d
 #endif
 
+TEST(TEST_CASE_NAME, example_runs) {
+    EXPECT_TRUE(ex_runs);
+}
+
 TEST(TEST_CASE_NAME, u_L1Norm) {
     bench  = bench_u_err[L1_IDX];
     actual = u_err[L1_IDX];
@@ -95,6 +99,6 @@ int main( int argc, char** argv ) {
     
     ex_argc = argc;
     ex_argv = argv;
-    run_example(ex_argc, ex_argv, u_err, p_err);
+    ex_runs = run_example(ex_argc, ex_argv, u_err, p_err);
     return RUN_ALL_TESTS( );
 }
