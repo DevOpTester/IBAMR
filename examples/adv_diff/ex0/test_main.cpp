@@ -5,7 +5,7 @@
 
 int ex_argc;
 char** ex_argv;
-bool result;
+bool ex_runs;
 static const double REL_ERROR = 1.0e-8;
 std::vector<double> bench_Q_err;
 std::vector<double> Q_err;
@@ -22,6 +22,10 @@ static const int MAX_IDX = 2;
 #if (NDIM == 3)
 #define TEST_CASE_NAME adv_diff_ex0_3d
 #endif
+
+TEST(TEST_CASE_NAME, example_runs) {
+    EXPECT_TRUE(ex_runs);
+}
 
 TEST(TEST_CASE_NAME, Q_L1Norm) {
     bench  = bench_Q_err[L1_IDX];
@@ -74,7 +78,7 @@ int main( int argc, char** argv ) {
     
     ex_argc = argc;
     ex_argv = argv;
-    run_example(ex_argc, ex_argv, Q_err);
+    ex_runs = run_example(ex_argc, ex_argv, Q_err);
     return RUN_ALL_TESTS( );
 }
 

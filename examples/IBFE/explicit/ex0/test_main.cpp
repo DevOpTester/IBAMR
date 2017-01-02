@@ -18,10 +18,10 @@ static const int MAX_IDX = 2;
 
 // Set names of test based on if compiled with 2D or 3D libraries
 #if (NDIM == 2)
-#define TEST_CASE_NAME IBFE_ex0_2d
+#define TEST_CASE_NAME IBFE_explicit_ex0_2d
 #endif
 #if (NDIM == 3)
-#define TEST_CASE_NAME IBFE_ex0_3d
+#define TEST_CASE_NAME IBFE_explicit_ex0_3d
 #endif
 
 TEST(TEST_CASE_NAME, example_runs) {

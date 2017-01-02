@@ -7,7 +7,7 @@ To run IBAMR's automated tests using `make gtest` or `make gtest-long` you need 
 
 Discussion of how this is accomplished and why it is necessary is explored in the [Google Test README](googletest/googletest/README.md).
 
-><font size=3>***Note:*** *The Google Test Framwork is often referred to as simply* **`gtest`** </font size>
+><font size=3>***Note:*** *The Google Test Framework is often referred to as **`gtest`** </font size>
 
 Once the gtest library is installed, IBAMR must be configured with the LDFLAGS variable pointing to it. 
 
@@ -19,7 +19,7 @@ Example configure invocation:
   FCFLAGS="-Wall" \
   CC="ccache $HOME/linux/openmpi/1.10.2/bin/mpicc" \
   CXX="ccache $HOME/linux/openmpi/1.10.2/bin/mpicxx" \
-  FC=$HOME/linux/openmpi/1.10.2/bin/mpif90 \
+  FC=$HOME/sfw/linux/openmpi/1.10.2/bin/mpif90 \
   CPPFLAGS="-DOMPI_SKIP_MPICXX" \
   LDFLAGS="-lgtest" \
   --with-hypre=$PETSC_DIR/$PETSC_ARCH \
@@ -38,40 +38,40 @@ Example configure invocation:
 Once the gtest library is installed and IBAMR is configured properly, all the tests can be run by invoking `make gtest` or `make gtest-long` in the root build directory. 
 
 #### `make gtest` vs. `make gtest-long`####
-* `make gtest` is intended as a smoke test/sanity check that can be run in less than half an hour on an average machine used for development. `make gtest` compiles a selection of 2D and 3D tests, and of these selected only runs the 2D tests.
+* `make gtest` is intended as a smoke test/sanity check that can be run in less than ten minutes on an average machine used for development (assuming the tests are allready compiled). 
+
+* `make gtest` compiles a selection of 2D and 3D tests, and of these selected only runs the 2D tests.
 
 *  `make gtest-long` compiles and runs every single test (2D and 3D) and takes a significant amount of time (exact runtime depends on your system resources).
 
 ## Running Individual Tests ##
 
-Each test currently included in the library is based off of example applications and uses the same source code as the examples, but runs the simulation from within a gtest application and analyzes the results. To run an individul test, navigate to the example of interest and run `make gtest` from the command line.
+Each test currently included in the library is based off of example applications and uses the same source code as the examples, but runs the simulation from within a gtest application and analyzes the results. To run an individual test, navigate to the example of interest and run `make gtest` from the command line to compile the test. Then the application can be run with `./test2d input2d.test` or `./test3d input3d.test` from the command line .
 
 ## Interpreting Results ##
 
-Every gtest application included in the IBAMR library returns a result indicating whether or not the example runs. This 
+Every gtest application included in the IBAMR library returns a result indicating whether or not the example runs.
 
-Below is some annotated output from an individual test application:
+Below is output from an individual test application:
 
 ```
-...( output from simulation )...
-
 [==========] Running 7 tests from 1 test case.
 [----------] Global test environment set-up.
-[----------] 7 tests from IBFE_ex0_2d
-[ RUN      ] IBFE_ex0_2d.example_runs
-[       OK ] IBFE_ex0_2d.example_runs (0 ms)
-[ RUN      ] IBFE_ex0_2d.u_L1Norm
-[       OK ] IBFE_ex0_2d.u_L1Norm (0 ms)
-[ RUN      ] IBFE_ex0_2d.u_L2Norm
-[       OK ] IBFE_ex0_2d.u_L2Norm (0 ms)
-[ RUN      ] IBFE_ex0_2d.u_MaxNorm
-[       OK ] IBFE_ex0_2d.u_MaxNorm (0 ms)
-[ RUN      ] IBFE_ex0_2d.p_L1Norm
-[       OK ] IBFE_ex0_2d.p_L1Norm (0 ms)
-[ RUN      ] IBFE_ex0_2d.p_L2Norm
-[       OK ] IBFE_ex0_2d.p_L2Norm (0 ms)
-[ RUN      ] IBFE_ex0_2d.p_MaxNorm
-[       OK ] IBFE_ex0_2d.p_MaxNorm (0 ms)
+[----------] 7 tests from IBFE_explicit_ex0_2d
+[ RUN      ] IBFE_explicit_ex0_2d.example_runs
+[       OK ] IBFE_explicit_ex0_2d.example_runs (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.u_L1Norm
+[       OK ] IBFE_explicit_ex0_2d.u_L1Norm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.u_L2Norm
+[       OK ] IBFE_explicit_ex0_2d.u_L2Norm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.u_MaxNorm
+[       OK ] IBFE_explicit_ex0_2d.u_MaxNorm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.p_L1Norm
+[       OK ] IBFE_explicit_ex0_2d.p_L1Norm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.p_L2Norm
+[       OK ] IBFE_explicit_ex0_2d.p_L2Norm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.p_MaxNorm
+[       OK ] IBFE_explicit_ex0_2d.p_MaxNorm (0 ms)
 [----------] 7 tests from IBFE_ex0_2d (0 ms total)
 
 [----------] Global test environment tear-down
@@ -80,28 +80,32 @@ Below is some annotated output from an individual test application:
 ```
 
 Notice that each test name follows the convention:
-`NAME_OF_TEST_APPLICATION.NAME_OF_QUALITY_TESTED`
+`NAME_OF_TEST_APPLICATION.NAME_OF_TEST`
 
 **Example interpretation 1:**
 ```
-[ RUN      ] IBFE_ex0_2d.example_runs
-[       OK ] IBFE_ex0_2d.example_runs (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.example_runs
+[       OK ] IBFE_explicit_ex0_2d.example_runs (0 ms)
 ```
-Indicates that the application run was the 2D case of the application found in examples/IBFE/ex0, and the the test was whether or not the application was able to run to completion and did not experience any run time errors. 
-
-This is a base line test to make sure any changes to the API of different IBAMR classes is accurately reflected in the example applications.
+The first part of the test name indicates that the test was of the application found in examples/IBFE/explicit/ex0.
+The second part of the name, "example_runs", indicates that the test is simply reporting back if the example was able to run without any runtime errors.
 
 **Example interpretation 2:**
 ```
-[ RUN      ] IBFE_ex0_2d.u_MaxNorm
-[       OK ] IBFE_ex0_2d.u_MaxNorm (0 ms)
-[ RUN      ] IBFE_ex0_2d.p_L1Norm
-[       OK ] IBFE_ex0_2d.p_L1Norm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.u_MaxNorm
+[       OK ] IBFE_explicit_ex0_2d.u_MaxNorm (0 ms)
+[ RUN      ] IBFE_explicit_ex0_2d.p_L1Norm
+[       OK ] IBFE_explicit_ex0_2d.p_L1Norm (0 ms)
 ```
 
-Again, each test indicates it was run on the 2D case of the applicaiton found in examples/IBFE/ex0.  Here the first test `IBFE_ex0_2d.u_MaxNorm` is observing whether or not the test application's "Max Norm" (also known as the infinity norm) of the velocity is within an acceptable margin of error from an analytical or laboratory result. The second test is performing a similar calculation except this time with the L1 norm of the pressure.
+Again, the first part of the test names indicates that the tests were of the application found in examples/IBFE/explicit/ex0.
+
+Here the test `u_MaxNorm` is observing whether or not the test application's "Max Norm" (also known as the infinity norm) of the velocity is within an acceptable margin of error from an analytical or laboratory result. 
+
+The second test is performing a similar calculation except this time with the L1 norm of the pressure.
 
 #### _Notation_ ####
+
 **L1_Norm**: The one-norm (also known as the L1-norm, `1 norm, or mean norm)  is defined as the sum of the absolute values of its components.
 
 **L2_Norm**:  The two-norm (also known as the L2-norm, 2-norm, mean-square norm, or least-squares norm) is defined as the square root of the sum of the squares of the absolute values of its components.
@@ -109,9 +113,7 @@ Again, each test indicates it was run on the 2D case of the applicaiton found in
 **MaxNorm**:  The infinity norm (also known as the L∞-norm, `∞-norm, max norm, or uniform norm) is defined as the maximum of the absolute values of its
 components.
 
-### Writing new tests ###
-
-#### Adding tests to existing applications ####
+## Adding tests to existing applications ##
 
 Adding new tests to examples with existing gtest applications, for example to `$IBAMR_DIR/examples/IBFE/explicit/ex1/`, can be done by adding tests to the `test_main.cpp` file in that directory following the pattern:
 
@@ -125,13 +127,29 @@ Many types  of assertions are available and are well documented in the [Google T
 
 If you desire to collect additional data from the example, it is suggested you pass a reference to the object that you'd like to test to the example. An example of this can be found in `$IBAMR_DIR/examples/IBFE/explicit/ex0/test_main.cpp `.
 
-#### Creating new gtest applications ####
+Any setup that should be shared between all tests can be performed in the `main( )` method in test_main.cpp before the call to `return RUN_ALL_TESTS(  );`.
 
-Two considerations must be kept in mind when writing new gtest applications. 
+```cpp
+int main( int argc, char** argv ) {
+     /* these lines processes any commandline arguments to googletest 
+      * and then prepare to hand the remaining arguments that were not
+      * valid googletest arguments to the example 
+      */
+    testing::InitGoogleTest( &argc, argv );
+    ex_argc = argc;
+    ex_argv = argv; 
 
-1. Users should not be required to have the Google Test Framework installed in order to use the rest of the library.
-
-2. In order for your new tests to be run by Jenkins, you must update all necessary parent Makefile.am files.
+	// this line runs the simulation returns true if no run-time errors occur
+    ex_runs = run_example(ex_argc, ex_argv);
+    
+    /* All tests have access to anything declared or manipulated here, 
+     * as the tests themselves are actually run within this main method
+     * upon the invocation of RUN_ALL_TESTS( )
+     */
+    
+    return RUN_ALL_TESTS( );
+}
+```
 
 ## Output ##
 By default, the gtest applications will only output to stdout.
