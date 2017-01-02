@@ -911,15 +911,15 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/{README,input[23]d*} $(PWD) ; \
 	fi ;
 	./test2d input2d.test
-	./test3d input3d.test
 
 gtest-long:
 	make gtest
+	./test3d input3d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  rm -f $(builddir)/{README,input[23]d} ; \
+	  rm -f $(builddir)/{README,input[23]d*} ; \
 	fi ;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

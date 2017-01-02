@@ -3,21 +3,21 @@ include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp
-GTEST_DRIVER = test_main.cpp
-EXTRA_DIST = README input2d
-EXTRA_DIST += input2d.test
+GTEST_DRIVER   = test_main.cpp
+EXTRA_DIST     = README input2d
+EXTRA_DIST    += input2d.test
 
 EXTRA_PROGRAMS =
 EXAMPLES =
-GTESTS =
+GTESTS   =
 if SAMRAI2D_ENABLED
 EXAMPLES += main2d
-GTESTS += test2d
+GTESTS   += test2d
 EXTRA_PROGRAMS += $(EXAMPLES) $(GTESTS)
 endif
 ##if SAMRAI3D_ENABLED
 ##EXAMPLES += main3d
-##GTESTS += test3d
+##GTESTS   += test3d
 ##EXTRA_PROGRAMS += $(EXAMPLES) $(GTESTS)
 ##endif
 
@@ -47,7 +47,6 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/{README,input[23]d*} $(PWD) ; \
 	fi ;
 	./test2d input2d.test
-
 
 gtest-long:
 	make gtest

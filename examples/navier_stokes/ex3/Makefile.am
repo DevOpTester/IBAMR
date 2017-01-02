@@ -3,15 +3,15 @@ include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp
-GTEST_DRIVER = test_main.cpp
-EXTRA_DIST = input2d input2d.test
+GTEST_DRIVER   = test_main.cpp
+EXTRA_DIST     = input2d input2d.test
 
 EXAMPLES =
-GTESTS =
+GTESTS   =
 EXTRA_PROGRAMS =
 if SAMRAI2D_ENABLED
 EXAMPLES += main2d
-GTESTS += test2d
+GTESTS   += test2d
 EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 

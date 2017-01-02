@@ -516,7 +516,7 @@ pkg_includedir = $(includedir)/@PACKAGE@
 SUFFIXES = .f.m4
 EXAMPLE_DRIVER = ex_main.cpp
 GTEST_DRIVER = test_main.cpp
-EXTRA_DIST = input2d input3d input2d.test input3d.test
+EXTRA_DIST = input2d input2d.test
 EXAMPLES = $(am__append_1)
 GTESTS = $(am__append_2)
 main2d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2

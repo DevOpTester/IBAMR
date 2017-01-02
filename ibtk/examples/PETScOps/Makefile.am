@@ -7,8 +7,6 @@ all:
 	  $(MAKE) examples ; \
 	fi ;
 
-
-
 gtest:
 	@(cd ProlongationMat && make gtest) || exit 1;
 

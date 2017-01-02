@@ -3,9 +3,9 @@ include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp
-GTEST_DRIVER    = test_main.cpp
+GTEST_DRIVER   = test_main.cpp
 
-EXTRA_DIST = input2d input3d input2d.test input3d.test
+EXTRA_DIST = input2d input2d.test
 
 EXAMPLES       =
 GTESTS         =

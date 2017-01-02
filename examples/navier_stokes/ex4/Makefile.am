@@ -3,20 +3,20 @@ include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp
-GTEST_DRIVER = test_main.cpp
-EXTRA_DIST = input2d input3d input2d.test input3d.test
+GTEST_DRIVER   = test_main.cpp
+EXTRA_DIST     = input2d input3d input2d.test input3d.test
 
 EXAMPLES = 
-GTESTS =
+GTESTS   =
 EXTRA_PROGRAMS =
 if SAMRAI2D_ENABLED
-GTESTS += test2d
+GTESTS   += test2d
 EXAMPLES += main2d
 EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 if SAMRAI3D_ENABLED
 EXAMPLES += main3d
-GTESTS += test3d
+GTESTS   += test3d
 EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 
@@ -45,10 +45,10 @@ gtest: $(GTESTS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input[23]d* $(PWD) ; \
 	fi ;
-	./test2d input2d.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 	./test3d input3d.test
 
 clean-local:

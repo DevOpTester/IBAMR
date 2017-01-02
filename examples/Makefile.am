@@ -22,21 +22,21 @@ examples:
 gtest:
 	@(cd IB               && make gtest) || exit 1;
 	@(cd IBFE             && make gtest) || exit 1;
-	## @(cd IMP              && make gtest) || exit 1;
+##      @(cd IMP              && make gtest) || exit 1;
 	@(cd adv_diff         && make gtest) || exit 1;
 	@(cd advect           && make gtest) || exit 1;
 	@(cd navier_stokes    && make gtest) || exit 1;
-	## @(cd ConstraintIB     && make gtest) || exit 1;
+##      @(cd ConstraintIB     && make gtest) || exit 1;
 	@(cd CIB              && make gtest) || exit 1;
 	@(cd CIBFE            && make gtest) || exit 1;
 
 gtest-long:
 	@(cd IB               && make gtest-long) || exit 1;
 	@(cd IBFE             && make gtest-long) || exit 1;
-	## @(cd IMP              && make gtest-long) || exit 1;
+##      @(cd IMP              && make gtest-long) || exit 1;
 	@(cd adv_diff         && make gtest-long) || exit 1;
 	@(cd advect           && make gtest-long) || exit 1;
 	@(cd navier_stokes    && make gtest-long) || exit 1;
-	## @(cd ConstraintIB     && make gtest-long) || exit 1;
+##      @(cd ConstraintIB     && make gtest-long) || exit 1;
 	@(cd CIB              && make gtest-long) || exit 1;
 	@(cd CIBFE            && make gtest-long) || exit 1;

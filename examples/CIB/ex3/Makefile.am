@@ -4,7 +4,7 @@ include $(top_srcdir)/config/Make-rules
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp
 GTEST_DRIVER   = test_main.cpp
-EXTRA_DIST  = input2d.nozzle nozzle2d.vertex input2d.nozzle.test 
+EXTRA_DIST  = input2d.nozzle nozzle2d.vertex input2d.test 
 
 EXAMPLES =
 GTESTS   =
@@ -31,13 +31,13 @@ examples: $(EXAMPLES)
 
 gtest: $(GTESTS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  cp -f $(srcdir)/input2d.nozzle* $(PWD) ; \
+	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	  cp -f $(srcdir)/nozzle2d.vertex $(PWD) ; \
 	fi ;
-	./test2d input2d.nozzle.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

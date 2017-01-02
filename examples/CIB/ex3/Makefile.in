@@ -500,7 +500,7 @@ pkg_includedir = $(includedir)/@PACKAGE@
 SUFFIXES = .f.m4
 EXAMPLE_DRIVER = ex_main.cpp
 GTEST_DRIVER = test_main.cpp
-EXTRA_DIST = input2d.nozzle nozzle2d.vertex input2d.nozzle.test 
+EXTRA_DIST = input2d.nozzle nozzle2d.vertex input2d.test 
 EXAMPLES = $(am__append_2)
 GTESTS = $(am__append_1)
 main2d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2
@@ -835,13 +835,13 @@ examples: $(EXAMPLES)
 
 gtest: $(GTESTS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
-	  cp -f $(srcdir)/input2d.nozzle* $(PWD) ; \
+	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	  cp -f $(srcdir)/nozzle2d.vertex $(PWD) ; \
 	fi ;
-	./test2d input2d.nozzle.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

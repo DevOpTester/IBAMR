@@ -50,10 +50,10 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/input3d.test $(PWD) ; \
 	  cp -f $(srcdir)/README $(PWD) ; \
 	fi ;
-	./test2d input2d.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 	./test3d input3d.test
 
 clean-local:

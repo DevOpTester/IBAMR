@@ -37,6 +37,7 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/petsc_options.dat $(PWD) ; \
 	fi ;
 	./test2d input2d
+
 gtest-long:
 	make gtest
 

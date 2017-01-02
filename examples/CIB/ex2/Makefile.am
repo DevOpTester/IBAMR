@@ -5,7 +5,7 @@ include $(top_srcdir)/config/Make-rules
 EXAMPLE_DRIVER = ex_main.cpp
 GTEST_DRIVER = test_main.cpp
 EXTRA_DIST  = input2d.plate input2d.plate.amr plate2d.vertex plate2d.m petsc_options.dat
-EXTRA_DIST += input2d.plate.test
+EXTRA_DIST += input2d.test
 
 EXTRA_PROGRAMS =
 EXAMPLES = 
@@ -39,10 +39,10 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/*.m $(PWD) ; \
 	  cp -f $(srcdir)/*.dat $(PWD) ; \
 	fi ;
-	./test2d input2d.plate.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

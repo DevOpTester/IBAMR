@@ -10,11 +10,11 @@ examples: lib
 
 gtest:
 	@(cd examples && make gtest) || exit 1;
-	@(cd ibtk && make gtest) || exit 1;
+	@(cd ibtk     && make gtest) || exit 1;
 
 gtest-long:
 	@(cd examples && make gtest-long) || exit 1;
-	@(cd ibtk && make gtest-long) || exit 1;
+	@(cd ibtk     && make gtest-long) || exit 1;
 
 install-exec-local:
 	@echo "===================================================================="

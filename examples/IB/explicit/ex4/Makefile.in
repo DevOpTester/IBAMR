@@ -833,14 +833,17 @@ examples: $(EXAMPLES)
 	  cp -f $(srcdir)/input3d $(PWD) ; \
 	  cp -f $(srcdir)/curve3d_64.{vertex,rod,director} $(PWD) ; \
 	fi ;
+
 gtest: $(GTESTS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input3d* $(PWD) ; \
 	  cp -f $(srcdir)/curve3d_64.{vertex,rod,director} $(PWD) ; \
 	  fi ;
+
 gtest-long:
 	make gtest
 	./test3d input3d.test
+
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \

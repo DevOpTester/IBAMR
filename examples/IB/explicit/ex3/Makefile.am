@@ -38,10 +38,10 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	  cp -f $(srcdir)/fila_{256,512,1024}.{vertex,spring,beam,target} $(PWD) ; \
 	fi ;
-	./test2d input2d.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

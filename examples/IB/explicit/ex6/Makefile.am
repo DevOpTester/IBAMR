@@ -38,10 +38,10 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/input2d* $(PWD) ; \
 	  cp -f $(srcdir)/curve2d_{64,128,256,512}.{vertex,spring} $(PWD) ; \
 	fi ;
-	./test2d input2d.test
 
 gtest-long:
 	make gtest
+	./test2d input2d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

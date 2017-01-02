@@ -37,10 +37,10 @@ gtest: $(GTESTS)
 	  cp -f $(srcdir)/*.vertex $(PWD) ; \
 	  cp -f $(srcdir)/petsc_options.dat $(PWD) ; \
 	fi ;
-	./test3d input3d
 
 gtest-long:
-	make gtest
+	make gtest	
+	./test3d input3d
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)

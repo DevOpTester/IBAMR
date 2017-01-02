@@ -3,14 +3,14 @@ include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
 EXAMPLE_DRIVER = ex_main.cpp BoussinesqForcing.cpp BoussinesqForcing.h
-GTEST_DRIVER = test_main.cpp BoussinesqForcing.cpp BoussinesqForcing.h
-EXTRA_DIST = input2d input2d.test
+GTEST_DRIVER   = test_main.cpp BoussinesqForcing.cpp BoussinesqForcing.h
+EXTRA_DIST     = input2d input2d.test
 
-GTESTS =
+GTESTS   =
 EXAMPLES =
 EXTRA_PROGRAMS =
 if SAMRAI2D_ENABLED
-GTESTS += test2d
+GTESTS   += test2d
 EXAMPLES += main2d
 EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
