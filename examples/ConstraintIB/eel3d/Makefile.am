@@ -4,28 +4,48 @@ include $(top_srcdir)/config/Make-rules
 if GSL_ENABLED
 
 ## Dimension-dependent testers
-EXTRA_DIST  = input3d 
+EXAMPLE_DRIVER = ex_main.cpp
+GTEST_DRIVER = test_main.cpp
+EXTRA_DIST  = input3d input3d.test
 EXTRA_DIST += eelgenerator3d.cpp
 
 
 EXTRA_PROGRAMS =
+GTESTS =
+EXAMPLES =
 if SAMRAI3D_ENABLED
-EXTRA_PROGRAMS += main3d eelgenerator3d
+EXAMPLES += main3d eelgenerator3d
+GTESTS += test3d
+EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 
 main3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
 main3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
-main3d_SOURCES = IBEELKinematics3d.cpp main.cpp
+main3d_SOURCES = IBEELKinematics3d.cpp $(EXAMPLE_DRIVER)
 
 eelgenerator3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
 eelgenerator3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
 eelgenerator3d_SOURCES = eelgenerator3d.cpp
 
-examples: $(EXTRA_PROGRAMS)
+test3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
+test3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
+test3d_SOURCES = IBEELKinematics3d.cpp $(GTEST_DRIVER)
+
+examples: $(EXAMPLES)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input3d $(PWD) ; \
 	  cp -f $(srcdir)/eel3d.vertex $(PWD) ; \
 	fi ;
+
+gtest: $(GTESTS)
+	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
+	  cp -f $(srcdir)/input3d.test $(PWD) ; \
+	  cp -f $(srcdir)/eel3d.vertex $(PWD) ; \
+	fi ;
+
+gtest-long:
+	make gtest
+	./test3d input3d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
