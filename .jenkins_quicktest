@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 set -o pipefail
-config_with_cache() {
+config_rm_cache() {
+    rm config.cache
     ./configure \
         CFLAGS="-Wall" \
         CXXFLAGS="-Wall" \
@@ -21,16 +22,11 @@ config_with_cache() {
         --with-libmesh-method=dbg \
         --enable-gsl \
         --with-gsl=$HOME/linux/gsl/2.3 \
-        --config-cache \
         --enable-gtest
 }
-config_rm_cache(){
-    rm config.cache
-    config_with_cache
-}
-config_with_cache || config_rm_cache
+config_rm_cache
 cd ibtk
-config_with_cache || config_rm_cache
+config_rm_cache
 cd ..
 make -kj4
 make gtest
