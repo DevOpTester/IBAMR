@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 set -o pipefail
-config_rm_cache() {
-    rm config.cache
+config() {
     ./configure \
         CFLAGS="-Wall" \
         CXXFLAGS="-Wall" \
@@ -24,9 +23,6 @@ config_rm_cache() {
         --with-gsl=$HOME/linux/gsl/2.3 \
         --enable-gtest
 }
-config_rm_cache
-cd ibtk
-config_rm_cache
-cd ..
+config
 make -kj4
 make gtest
