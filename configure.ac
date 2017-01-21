@@ -53,7 +53,9 @@ CHECK_BUILTIN_PREFETCH
 # Checks for optional and required third-party libraries.
 ###########################################################################
 PACKAGE_INITIALIZE_ENVIRONMENT
+
 CONFIGURE_LIBMESH # must configure libMesh first to scope its configuration
+CONFIGURE_GTEST("$ABSOLUTE_SRCDIR/ibtk/contrib/googletest", "\$(abs_top_builddir)/ibtk/contrib/googletest")
 CONFIGURE_BOOST("$ABSOLUTE_SRCDIR/ibtk/contrib/boost","\$(abs_top_builddir)/ibtk/contrib/boost")
 CONFIGURE_EIGEN("$ABSOLUTE_SRCDIR/ibtk/contrib/eigen","\$(abs_top_builddir)/ibtk/contrib/eigen")
 CONFIGURE_HDF5

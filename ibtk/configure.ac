@@ -56,6 +56,7 @@ CONFIGURE_DOT
 ###########################################################################
 PACKAGE_INITIALIZE_ENVIRONMENT
 CONFIGURE_LIBMESH # must configure libMesh first to scope its configuration
+CONFIGURE_GTEST("$ABSOLUTE_SRCDIR/ibtk/contrib/googletest", "\$(abs_top_builddir)/ibtk/contrib/googletest")
 CONFIGURE_BOOST("$ABSOLUTE_SRCDIR/contrib/boost","\$(abs_top_builddir)/contrib/boost")
 CONFIGURE_EIGEN("$ABSOLUTE_SRCDIR/contrib/eigen","\$(abs_top_builddir)/contrib/eigen")
 CONFIGURE_HDF5
@@ -113,5 +114,9 @@ AC_CONFIG_FILES([
 ])
 if test "$USING_BUNDLED_MUPARSER" = yes ; then
   AC_CONFIG_SUBDIRS([contrib/muparser])
+fi
+if test "$USING_BUNDLED_GTEST" = yes ; then
+  AC_CONFIG_SUBDIRS([contrib/googletest contrib/googletest/googletest])
+  AC_CONFIG_FILES([contrib/googletest/Makefile])
 fi
 AC_OUTPUT
