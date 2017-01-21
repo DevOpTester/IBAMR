@@ -4,3 +4,7 @@ SUBDIRS =
 if USING_BUNDLED_MUPARSER
   SUBDIRS += muparser
 endif
+
+if USING_BUNDLED_GTEST
+  SUBDIRS += googletest
+endif

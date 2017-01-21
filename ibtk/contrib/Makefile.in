@@ -88,6 +88,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @USING_BUNDLED_MUPARSER_TRUE@am__append_1 = muparser
+@USING_BUNDLED_GTEST_TRUE@am__append_2 = googletest
 subdir = contrib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_prefix_config_h.m4 \
@@ -173,7 +174,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = muparser
+DIST_SUBDIRS = muparser googletest
 am__DIST_COMMON = $(srcdir)/Makefile.in \
 	$(top_srcdir)/config/Make-rules
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -504,7 +505,7 @@ IBTK2d_LIBS = ${top_builddir}/lib/libIBTK2d.a
 IBTK3d_LIBS = ${top_builddir}/lib/libIBTK3d.a
 pkg_includedir = $(includedir)/@PACKAGE@
 SUFFIXES = .f.m4
-SUBDIRS = $(am__append_1)
+SUBDIRS = $(am__append_1) $(am__append_2)
 all: all-recursive
 
 .SUFFIXES:
