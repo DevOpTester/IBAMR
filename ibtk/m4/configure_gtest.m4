@@ -57,7 +57,7 @@ if test "$GTEST_ENABLED" = yes; then
   GTEST_CPPFLAGS="-I${GTEST_DIR}/googletest/include"
   GTEST_LDFLAGS=""
   HAVE_GTEST=yes
-  LIBGTEST="$GTEST_BUILDDIR/googletest/lib/libgtest.la"
+  LIBGTEST="$GTEST_BUILDDIR/googletest/lib/libgtest.a"
   AC_DEFINE(HAVE_LIBGTEST, 1, [Define if you have the libgtest library.])
   fi
 else

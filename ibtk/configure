@@ -27958,7 +27958,7 @@ $as_echo "$as_me: Optional package Google Test is enabled, using bundled" >&6;}
   GTEST_CPPFLAGS="-I${GTEST_DIR}/googletest/include"
   GTEST_LDFLAGS=""
   HAVE_GTEST=yes
-  LIBGTEST="$GTEST_BUILDDIR/googletest/lib/libgtest.la"
+  LIBGTEST="$GTEST_BUILDDIR/googletest/lib/libgtest.a"
 
 $as_echo "#define HAVE_LIBGTEST 1" >>confdefs.h
 
