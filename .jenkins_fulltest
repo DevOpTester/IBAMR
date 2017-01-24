@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e 
 set -o pipefail
-config_with_cache() {
+config() {
     ./configure \
         CFLAGS="-Wall" \
         CXXFLAGS="-Wall" \
@@ -10,7 +10,6 @@ config_with_cache() {
         CXX="ccache $HOME/linux/openmpi/1.10.2/bin/mpicxx" \
         FC=$HOME/linux/openmpi/1.10.2/bin/mpif90 \
         CPPFLAGS="-DOMPI_SKIP_MPICXX" \
-        LDFLAGS="-lgtest" \
         --with-hypre=$PETSC_DIR/$PETSC_ARCH \
         --with-samrai=$SAMRAI_DIR \
         --with-hdf5=$HOME/linux/hdf5/1.8.16 \
@@ -22,13 +21,10 @@ config_with_cache() {
         --with-libmesh-method=dbg \
         --enable-gsl \
         --with-gsl=$HOME/linux/gsl/2.3 \
-        --config-cache
+        --enable-gtest \
+        --with-gtest=$HOME/linux/googletest
 }
-config_rm_cache(){
-    rm config.cache
-    config_with_cache
-}
-config_with_cache || config_rm_cache
+config
 make -kj4 lib
 cd examples 
 make gtest-long

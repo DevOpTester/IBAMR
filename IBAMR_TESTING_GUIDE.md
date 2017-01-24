@@ -35,6 +35,7 @@ cmake CMakeLists.txt \
 -Dgtest_build_samples=ON
 
 make 
+make test
 make install
 ```
 
@@ -207,7 +208,7 @@ git clone https://github.com/google/googletest.git googletest
 cd googletest
 ```
 
-1) IBAMR configure is expecting a static library (a library with ".a" file ending), but the googletest Makefile.am creates ["libtool libraries"](http://stackoverflow.com/questions/1238035/what-are-libtools-la-file-for). 
+IBAMR configure is expecting a static library (a library with ".a" file ending), but the googletest Makefile.am creates ["libtool libraries"](http://stackoverflow.com/questions/1238035/what-are-libtools-la-file-for). 
 
 So you must go into the Makefile.am and change everything that says **something like**:
 ```
