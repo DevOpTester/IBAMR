@@ -5,40 +5,54 @@
 
 To run IBAMR's automated tests using `make gtest` or `make gtest-long` you need to have available the [Google Test Framework](https://github.com/google/googletest) installed using the same compiler and compiler flags as the IBAMR project. 
 
-Discussion of how this is accomplished and why it is necessary is explored in the [Google Test README](googletest/googletest/README.md).
+><font size=3>**Note:** The Google Test Framework is often referred to as **gtest** </font size>
 
-><font size=3>***Note:*** *The Google Test Framework is often referred to as **`gtest`** </font size>
+Discussion of why this is necessary can be found in [Google Test README](googletest/googletest/README.md).
 
-Once the gtest library is installed, IBAMR must be configured with the LDFLAGS variable pointing to it. 
+In short, it is necessary to use the same compiler and same compiler flags as you will be using for your IBAMR build to avoid possibly aberrant runtime behavior.
 
-Example configure invocation:
-```bash
-./configure \
-  CFLAGS="-Wall" \
-  CXXFLAGS="-Wall" \
-  FCFLAGS="-Wall" \
-  CC="ccache $HOME/linux/openmpi/1.10.2/bin/mpicc" \
-  CXX="ccache $HOME/linux/openmpi/1.10.2/bin/mpicxx" \
-  FC=$HOME/sfw/linux/openmpi/1.10.2/bin/mpif90 \
-  CPPFLAGS="-DOMPI_SKIP_MPICXX" \
-  LDFLAGS="-lgtest" \
-  --with-hypre=$PETSC_DIR/$PETSC_ARCH \
-  --with-samrai=$SAMRAI_DIR \
-  --with-hdf5=$HOME/linux/hdf5/1.8.16 \
-  --with-blitz=$HOME/linux/blitz/0.10 \
-  --with-silo=$HOME/linux/silo/4.10 \
-  --with-boost=$HOME/linux/boost/1.61.0 \
-  --enable-libmesh \
-  --with-libmesh=$HOME/linux/libmesh/1.0.0/1.0.0-debug \
-  --with-libmesh-method=dbg
+Below is an example of how you would build gtest as a user on an Linux system with all IBAMR dependencies already in place as outlined in the [IBAMR building wiki](https://github.com/IBAMR/IBAMR/wiki/Building). 
+
+This build technique requires `cmake` which is available through most package managers. Additionally users can find pre-compiled binaries and instructions for building from source at [Cmake project's install page](https://cmake.org/install/). 
+
+*If you would like to build googletest using only the autotools, please refer to the appendix at the end of this document.*
+
+```
+cd $HOME/sfw/linux/
+git clone https://github.com/google/googletest.git googletest
+cd googletest
+
+cmake CMakeLists.txt \
+-DBUILD_GMOCK=ON \
+-DBUILD_GTEST=OFF \
+-DCMAKE_CXX_COMPILER=$HOME/sfw/linux/openmpi/1.10.2/bin/mpicxx \
+-DCMAKE_CXX_FLAGS=-Wall \
+-DCMAKE_C_COMPILER=$HOME/sfw/linux/openmpi/1.10.2/bin/mpicc \
+-DCMAKE_C_FLAGS=-Wall \
+-DCMAKE_INSTALL_PREFIX=$HOME/sfw/linux/googletest/ \
+-Dgtest_build_tests=ON \
+-Dgmock_build_tests=ON \
+-Dgtest_build_samples=ON
+
+make 
+make install
 ```
 
-## Invocation ##
+> You should set `DC_MAKE_CXX_COMPILER`, `DCMAKE_C_COMPILER`, `DCMAKE_C_FLAGS` and `DCMAKE_CXX_FLAGS` to the same values as you have build IBAMR with. You can see your most recent options by looking looking at the `config.log` in your IBAMR build directory.
+
+Once the gtest library is installed, IBAMR must be configured with the LDFLAGS variable pointing to it. i.e. add 
+
+>```--enable-gtest --with-gtest=$HOME/sfw/linux/googletest ```
+
+to your `configure` invocation.
+
+
+## How to run the tests ##
 
 Once the gtest library is installed and IBAMR is configured properly, all the tests can be run by invoking `make gtest` or `make gtest-long` in the root build directory. 
 
 #### `make gtest` vs. `make gtest-long`####
-* `make gtest` is intended as a smoke test/sanity check that can be run in less than ten minutes on an average machine used for development (assuming the tests are allready compiled). 
+* `make gtest` is intended as a smoke test/sanity check that can be run in less than ten minutes on an average machine used for development (assuming the tests are already compiled). 
 
 * `make gtest` compiles a selection of 2D and 3D tests, and of these selected only runs the 2D tests.
 
@@ -131,7 +145,7 @@ Any setup that should be shared between all tests can be performed in the `main(
 
 ```cpp
 int main( int argc, char** argv ) {
-     /* these lines processes any commandline arguments to googletest 
+     /* these lines processes any command line arguments to googletest 
       * and then prepare to hand the remaining arguments that were not
       * valid googletest arguments to the example 
       */
@@ -178,4 +192,52 @@ rm -rf *.xml
 With this set, all test results will be amalgamated into one report the the plugin can use to determine the build status and generate graphical reports in the job view. Old test results must be removed at the beginning of each build in order to avoid cluttering up the workspace.
 
 > _**Note:**_`$WORKSPACE` *is one of the [environment variable is available from Jenkins](https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables) and resolves to the absolute path to the workspace*
+
+## APPENDIX: How to build libgtest without cmake or libtool ##
+This method is not recommended, but possible.
+
+Building libgtest with cmake method is preferable, as it is the currently maintained build system for the Google Test Framework. However, there are are autotools scripts available in the interior googletest directory. 
+
+If you do not have `cmake` available and do not wish to install it, here is an example of how you might build libgtest using the autotools:
+
+First, download the googletest repository from git:
+```
+cd $HOME/sfw/linux/
+git clone https://github.com/google/googletest.git googletest
+cd googletest
+```
+
+1) IBAMR configure is expecting a static library (a library with ".a" file ending), but the googletest Makefile.am creates ["libtool libraries"](http://stackoverflow.com/questions/1238035/what-are-libtools-la-file-for). 
+
+So you must go into the Makefile.am and change everything that says **something like**:
+```
+lib_LTLIBRARIES = lib/libgtest.la lib/libgtest_main.la
+
+lib_libgtest_la_SOURCES = src/gtest-all.cc
+```
+**to** 
+```
+lib_LIBRARIES = lib/libgtest.a lib/libgtest_main.a
+
+lib_libgtest_a_SOURCES = src/gtest-all.cc
+
+```
+
+This example is representative but not exhaustive. There are several more occurrences where you must replace `LTLIBRARIES` with `LIBRARIES` and switch `la` to `a`.
+
+```
+cd $HOME/sfw/linux
+cd $HOME/sfw/linux/
+git clone https://github.com/google/googletest.git googletest
+cd googletest/googletest
+
+autoreconf --force --verbose --install -I config -I m4
+./configure CXXFLAGS=-Wall FCFLAGS=-Wall CC="ccache $HOME/linux/openmpi/1.10.2/bin/mpicc" CXX="ccache $HOME/linux/openmpi/1.10.2/bin/mpicxx" FC=$HOME/linux/openmpi/1.10.2/bin/mpif90 CPPFLAGS=-DOMPI_SKIP_MPICXX
+
+make
+``` 
+Now there should be a header at the path  `$HOME/sfw/linux/googletest/googletest/include/gtest/gtest.h` and a static library at the path `$HOME/sfw/linux/googletest/googletest/lib/libgtest.a`.
+
+Now, when configuring with IBAMR you follow the same directions, except you will provide this inner directory to `--with-gtest=$HOME/sfw/linux/googletest/googletest`
+
 
