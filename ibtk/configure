@@ -26825,6 +26825,37 @@ if test "$GTEST_ENABLED" = yes; then
       GTEST_LDFLAGS="-L${GTEST_DIR}/lib"
     fi
   fi
+  if test x$GTEST_DIR = x ; then
+      as_fn_error $? "
+
+      !!!! Google Test is enabled, but no path specified !!!!
+
+      --enable-gtest was passed, but GTEST_DIR was not specified
+      with --with-gtest=GTEST_DIR
+
+  Google Test may be built using Cmake in following manner:
+  =============================================================
+  git clone https://github.com/google/googletest.git googletest
+  cd googletest
+
+  cmake CMakeLists.txt  -DCMAKE_INSTALL_PREFIX=GTEST_DIR
+    -DCMAKE_CXX_COMPILER=MPI_DIR/bin/mpicxx
+    -DCMAKE_CXX_FLAGS=IBAMR_CXX_FLAGS
+    -DCMAKE_C_COMPILER=MPI_DIR/bin/mpicc
+    -DCMAKE_C_FLAGS=IBAMR_C_FLAGS -Dgtest_build_tests=ON
+    -Dgmock_build_tests=ON -Dgtest_build_samples=ON
+    -DBUILD_GMOCK=ON -DBUILD_GTEST=OFF
+
+    make
+    make test
+    make install
+  ===============================================================
+
+  (replace GTEST_DIR, IBAMR_CXX_FLAGS, etc. with actual values)
+
+  See IBAMR_TESTING_GUIDE.md in root IBAMR directory for more details.
+  " "$LINENO" 5
+ fi
 
   CPPFLAGS="$GTEST_CPPFLAGS $CPPFLAGS"
 
@@ -26833,7 +26864,38 @@ ac_fn_cxx_check_header_mongrel "$LINENO" "${GTEST_DIR}/include/gtest/gtest.h" "$
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
 else
-  as_fn_error $? "could not find header file gtest.h" "$LINENO" 5
+  as_fn_error $? "
+
+  !!!! Configure could not find header file gtest.h !!!!
+  Please provide to --with-gtest=GTEST_DIR the directory that contains:
+
+  GTEST_DIR
+  |-include/
+    |-gtest/
+      +-gtest.h
+  |-lib/
+    +-libgtest.a
+
+  Google Test may be built using Cmake in following manner:
+  =============================================================
+  git clone https://github.com/google/googletest.git googletest
+  cd googletest
+
+  cmake CMakeLists.txt  -DCMAKE_INSTALL_PREFIX=GTEST_DIR
+    -DCMAKE_CXX_COMPILER=MPI_DIR/bin/mpicxx
+    -DCMAKE_CXX_FLAGS=IBAMR_CXX_FLAGS
+    -DCMAKE_C_COMPILER=MPI_DIR/bin/mpicc
+    -DCMAKE_C_FLAGS=IBAMR_C_FLAGS -Dgtest_build_tests=ON
+    -Dgmock_build_tests=ON -Dgtest_build_samples=ON
+    -DBUILD_GMOCK=ON -DBUILD_GTEST=OFF
+
+    make
+    make test
+    make install
+  ===============================================================
+
+  See IBAMR_TESTING_GUIDE.md in root IBAMR directory for more details.
+  " "$LINENO" 5
 fi
 
 
@@ -27391,7 +27453,37 @@ $as_echo "$LIBGTEST" >&6; }
 
 
   if test "$HAVE_LIBGTEST" = no ; then
-    as_fn_error $? "could not find working libgtest" "$LINENO" 5
+    as_fn_error $? "
+    !!! Could not find working libgtest.a !!!
+  Please provide to --with-gtest=GTEST_DIR the directory that contains:
+
+  GTEST_DIR
+  |-include/
+    |-gtest/
+      +-gtest.h
+  |-lib/
+    +-libgtest.a
+
+  Google Test may be built using Cmake in following manner:
+  =============================================================
+  git clone https://github.com/google/googletest.git googletest
+  cd googletest
+
+  cmake CMakeLists.txt  -DCMAKE_INSTALL_PREFIX=GTEST_DIR
+    -DCMAKE_CXX_COMPILER=MPI_DIR/bin/mpicxx
+    -DCMAKE_CXX_FLAGS=IBAMR_CXX_FLAGS
+    -DCMAKE_C_COMPILER=MPI_DIR/bin/mpicc
+    -DCMAKE_C_FLAGS=IBAMR_C_FLAGS -Dgtest_build_tests=ON
+    -Dgmock_build_tests=ON -Dgtest_build_samples=ON
+    -DBUILD_GMOCK=ON -DBUILD_GTEST=OFF
+
+    make
+    make test
+    make install
+  ===============================================================
+
+  See IBAMR_TESTING_GUIDE.md in root IBAMR directory for more details.
+    " "$LINENO" 5
   fi
 
   PACKAGE_CPPFLAGS="$GTEST_CPPFLAGS $PACKAGE_CPPFLAGS"
@@ -27402,8 +27494,12 @@ $as_echo "$LIBGTEST" >&6; }
 
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Optional package Google Test Framework is DISABLED" >&5
-$as_echo "$as_me: Optional package Google Test Framework is DISABLED" >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Optional package Google Test Framework is DISABLED
+
+  " >&5
+$as_echo "$as_me: Optional package Google Test Framework is DISABLED
+
+  " >&6;}
 fi
 
 
@@ -27416,6 +27512,7 @@ LIBS=$PACKAGE_save_LIBS
 FCLIBS=$PACKAGE_save_FCLIBS
 CONTRIB_LIBS=$PACKAGE_save_CONTRIB_LIBS
 
+echo
 
 
 echo "$as_me: this is boost.m4 serial 26" >&5
