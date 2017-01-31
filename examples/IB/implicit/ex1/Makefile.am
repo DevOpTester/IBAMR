@@ -2,38 +2,68 @@
 include $(top_srcdir)/config/Make-rules
 
 ## Dimension-dependent testers
-SOURCES = main.cpp
-EXTRA_DIST  = input2d
-EXTRA_DIST += input3d
+EXAMPLE_DRIVER = ex_main.cpp
+GTEST_DRIVER = test_main.cpp
+EXTRA_DIST  = input2d input2d.test
+EXTRA_DIST += input3d input3d.test
 EXTRA_DIST += generate_curve2d.m
 
-EXTRA_DIST += curve2d_64.vertex curve2d_128.vertex curve2d_256.vertex curve2d_512.vertex 
-EXTRA_DIST += curve2d_64.spring curve2d_128.spring curve2d_256.spring curve2d_512.spring 
+EXTRA_DIST += curve2d_64.vertex curve2d_128.vertex 
+EXTRA_DIST += curve2d_256.vertex curve2d_512.vertex 
+EXTRA_DIST += curve2d_64.spring curve2d_128.spring 
+EXTRA_DIST += curve2d_256.spring curve2d_512.spring 
 EXTRA_DIST += sphere3d.vertex sphere3d.spring
 
+EXAMPLES =
+GTESTS =
 EXTRA_PROGRAMS =
 if SAMRAI2D_ENABLED
-EXTRA_PROGRAMS += main2d
+EXAMPLES += main2d
+GTESTS   += test2d
+EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 if SAMRAI3D_ENABLED
-EXTRA_PROGRAMS += main3d
+EXAMPLES += main3d
+GTESTS   += test3d
+EXTRA_PROGRAMS += $(GTESTS) $(EXAMPLES)
 endif
 
 main2d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2
 main2d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR2d_LIBS) $(IBAMR_LIBS)
-main2d_SOURCES = $(SOURCES)
+main2d_SOURCES = $(EXAMPLE_DRIVER)
+
+test2d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2
+test2d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR2d_LIBS) $(IBAMR_LIBS)
+test2d_SOURCES = $(GTEST_DRIVER)
 
 main3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
 main3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
-main3d_SOURCES = $(SOURCES)
+main3d_SOURCES = $(EXAMPLE_DRIVER)
 
-examples: $(EXTRA_PROGRAMS)
+test3d_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=3
+test3d_LDADD = $(IBAMR_LDFLAGS) $(IBAMR3d_LIBS) $(IBAMR_LIBS)
+test3d_SOURCES = $(GTEST_DRIVER)
+
+examples: $(EXAMPLES)
 	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
 	  cp -f $(srcdir)/input2d $(PWD) ; \
 	  cp -f $(srcdir)/curve2d_{64,128,256,512}.{vertex,spring} $(PWD) ; \
 	  cp -f $(srcdir)/input3d $(PWD) ; \
 	  cp -f $(srcdir)/sphere3d.{vertex,spring} $(PWD) ; \
 	fi ;
+
+gtest: $(GTESTS)
+	if test "$(top_srcdir)" != "$(top_builddir)" ; then \
+	  cp -f $(srcdir)/input2d* $(PWD) ; \
+	  cp -f $(srcdir)/curve2d_{64,128,256,512}.{vertex,spring} $(PWD) ; \
+	  cp -f $(srcdir)/input3d* $(PWD) ; \
+	  cp -f $(srcdir)/sphere3d.{vertex,spring} $(PWD) ; \
+	fi ;
+	./test2d input2d.test
+
+gtest-long:
+	make gtest
+	./test3d input3d.test
 
 clean-local:
 	rm -f $(EXTRA_PROGRAMS)
