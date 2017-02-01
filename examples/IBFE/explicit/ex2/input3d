@@ -14,6 +14,7 @@ MFAC = 2.0                                     // ratio of Lagrangian mesh width
 ELEM_TYPE = "HEX8"                             // type of element to use for structure discretization
 PK1_DEV_QUAD_ORDER = "THIRD"
 PK1_DIL_QUAD_ORDER = "FIRST"
+MESH_FILENAME = "MeshFile_N_64_MFAC_2.e"
 
 // solver parameters
 IB_DELTA_FUNCTION          = "IB_4"            // the type of smoothed delta function to use for Lagrangian-Eulerian interaction

@@ -182,7 +182,8 @@ run_example(int argc, char* argv[])
                                             Utility::string_to_enum<ElemType>(elem_type));
 #endif
 #if (NDIM == 3)
-        MeshTools::Generation::build_cube(mesh,
+        mesh.read(input_db->getString("MESH_FILENAME"));
+/*        MeshTools::Generation::build_cube(mesh,
                                           static_cast<int>(ceil(0.1 / ds)),
                                           static_cast<int>(ceil(1.0 / ds)),
                                           static_cast<int>(ceil(1.0 / ds)),
@@ -193,6 +194,18 @@ run_example(int argc, char* argv[])
                                           0.0,
                                           1,
                                           Utility::string_to_enum<ElemType>(elem_type));
+*/
+
+        for (MeshBase::node_iterator it = mesh.nodes_begin();
+             it != mesh.nodes_end(); ++it)
+        {
+            Node* n = *it;
+            libMesh::Point& X = *n;
+            X(0) += 0.9;
+            X(1) += 0.5;
+            X(2) += 0.5;
+        }
+        
 #endif
         const MeshBase::const_element_iterator end_el = mesh.elements_end();
         for (MeshBase::const_element_iterator el = mesh.elements_begin(); el != end_el; ++el)
