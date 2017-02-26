@@ -63,7 +63,151 @@
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
+class IBFEModel{
+    private:
+        void parse_inputdb();
+    public:
+        // constructor/deconstructor
+        IBFEModel::IBFEModel(int argc, const char * const * argv);
+        virtual ~IBFEModel();
 
-static void build_geometry(Mesh& mesh, Pointer<Database> input_db){
+        // standard options set in input file
+        const bool   dump_viz_data;
+        const int    viz_dump_interval;
+        const bool   uses_visit;
+        const bool   uses_exodus;
+        const string exodus_filename;
+        const bool   uses_gmv;
+        const string gmv_filename;
+        const bool   dump_restart_data;
+        const int    restart_dump_interval;
+        const string restart_dump_dirname;
+        const string restart_read_dirname;
+        const int    restart_restore_num;
+        const bool   dump_postproc_data;
+        const int    postproc_data_dump_interval;
+        const string postproc_data_dump_dirname;
+        const bool   dump_timer_data;
+        const int    timer_dump_interval;
+        const double dx;
+        const double ds;
+        const string elem_type;
+        const string solver_type;
+        const bool   uses_inital_velocity;
+        const bool   uses_initial_pressure;
+        const bool   uses_forcing_function;
+        const string data_dump_dirname;
+
+        // objects associated with this model
+        Pointer<AppInitializer> app_initializer;
+        Pointer<Database> input_db;
+        Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
+        Pointer<IBFEMethod> ib_method_ops;
+        Pointer<IBHierarchyIntegrator> time_integrator;
+        Pointer<CartesianGridGeometry<NDIM> > grid_geometry;
+        Pointer<StandardTagAndInitialize<NDIM> > error_detector;
+        Pointer<PatchHierarchy<NDIM> > patch_hierarchy;
+        Pointer<BergerRigoutsos<NDIM> > box_generator;
+        Pointer<LoadBalancer<NDIM> > load_balancer;
+        Pointer<GriddingAlgorithm<NDIM> > gridding_algorithm;
+        Pointer<CartGridFunction> u_init;
+        Pointer<CartGridFunction> p_init;
+        Pointer<CartGridFunction> forcing_function;
+        Pointer<VisItDataWriter<NDIM> > viz_data_writer;
+        AutoPtr<ExodusII_IO> exodus_io;
+        AutoPtr<GMVIO> gmv_io;
+        EquationSystems* equation_systems;
+        Mesh mesh;
+
+        // public methods
+        void log_input_database();
+        void deallocate_init_objects();
+        void init_hierarchy_config();
+        void write_viz_files();
+        void write_restart_files();
+        void write_timer_data();
+        void write_postproc_data();
+        void output_data(const int iteration_num, const double loop_time);
+};
+
+// Constructor
+IBFEModel::IBFEModel(int argc, const char * const * argv){
+            app_initializer = new AppInitializer(argc, argv, "IB.log");
+            parse_inputdb();
+        }
+IBFEModel::~IBFEModel(){
 
 }
+
+// public methods
+void log_input_database(){
+
+}
+
+void deallocate_init_objects(){
+
+}
+
+void init_hierarchy_config(){
+
+}
+
+void write_viz_files(){
+
+}
+
+void write_restart_files(){
+
+}
+
+void write_timer_data(){
+
+}
+
+void write_postproc_data(){
+
+}
+
+void output_data(const int iteration_num, const double loop_time){
+    plog << "writing hierarchy data at iteration " << iteration_num << " to disk" << endl;
+    plog << "simulation time is " << loop_time << endl;
+
+    // Write Cartesian data.
+    string file_name = data_dump_dirname + "/" + "hier_data.";
+    char temp_buf[128];
+    sprintf(temp_buf, "%05d.samrai.%05d", iteration_num, SAMRAI_MPI::getRank());
+    file_name += temp_buf;
+    Pointer<HDFDatabase> hier_db = new HDFDatabase("hier_db");
+    hier_db->create(file_name);
+    VariableDatabase<NDIM>* var_db = VariableDatabase<NDIM>::getDatabase();
+    ComponentSelector hier_data;
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getVelocityVariable(),
+                                                           navier_stokes_integrator->getCurrentContext()));
+    hier_data.setFlag(var_db->mapVariableAndContextToIndex(navier_stokes_integrator->getPressureVariable(),
+                                                           navier_stokes_integrator->getCurrentContext()));
+    patch_hierarchy->putToDatabase(hier_db->putDatabase("PatchHierarchy"), hier_data);
+    hier_db->putDouble("loop_time", loop_time);
+    hier_db->putInteger("iteration_num", iteration_num);
+    hier_db->close();
+
+    // Write Lagrangian data.
+    file_name = data_dump_dirname + "/" + "fe_mesh.";
+    sprintf(temp_buf, "%05d", iteration_num);
+    file_name += temp_buf;
+    file_name += ".xda";
+    mesh.write(file_name);
+    file_name = data_dump_dirname + "/" + "fe_equation_systems.";
+    sprintf(temp_buf, "%05d", iteration_num);
+    file_name += temp_buf;
+    equation_systems->write(file_name, (EquationSystems::WRITE_DATA | EquationSystems::WRITE_ADDITIONAL_DATA));
+    return;
+} // output_data
+
+void set_viz_options(Pointer<AppInitializer> app_initializer){
+
+}
+
+void build_geometry(Mesh& mesh, Pointer<Database> input_db){
+
+}
+
