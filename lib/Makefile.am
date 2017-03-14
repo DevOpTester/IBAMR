@@ -139,7 +139,8 @@ DIM_INDEPENDENT_SOURCES = \
 ../src/navier_stokes/StaggeredStokesSolver.cpp \
 ../src/navier_stokes/StaggeredStokesSolverManager.cpp \
 ../src/navier_stokes/StokesBcCoefStrategy.cpp \
-../src/utilities/ConvectiveOperator.cpp
+../src/utilities/ConvectiveOperator.cpp \
+../src/utilities/IBAMRInit.cpp
 
 if LIBMESH_ENABLED
   DIM_INDEPENDENT_SOURCES += \
@@ -154,6 +155,7 @@ if LIBMESH_ENABLED
 endif
 
 pkg_include_HEADERS += \
+../include/ibamr/IBAMRInit.h \
 ../include/ibamr/AdvDiffCenteredConvectiveOperator.h \
 ../include/ibamr/AdvDiffConvectiveOperatorManager.h \
 ../include/ibamr/AdvDiffHierarchyIntegrator.h \

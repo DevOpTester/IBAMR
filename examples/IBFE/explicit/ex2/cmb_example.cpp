@@ -61,6 +61,7 @@
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
+#include <ibamr/IBAMRInit.h>
 
 // Elasticity model data.
 namespace ModelData
@@ -123,79 +124,32 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
 bool
 run_example(int argc, char* argv[])
 {
-    // Initialize libMesh, PETSc, MPI, and SAMRAI.
-    LibMeshInit init(argc, argv);
+
+    LibMeshInit libmesh_init(argc, argv);
+    IBAMRInit init = IBAMRInit::getInstance(argc, argv, &libmesh_init);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
-
+    //init.parse_inputdb();
+    //pout << "SAMRAI started up";
+    //Mesh mesh = init.getMesh();
+/*
     { // cleanup dynamically allocated objects prior to shutdown
 
         // Parse command line options, set some standard options from the input
         // file, initialize the restart database (if this is a restarted run),
         // and enable file logging.
-        Pointer<AppInitializer> app_initializer = new AppInitializer(argc, argv, "IB.log");
-        Pointer<Database> input_db = app_initializer->getInputDatabase();
-
-        // Get various standard options set in the input file.
-        const bool dump_viz_data = app_initializer->dumpVizData();
-        const int viz_dump_interval = app_initializer->getVizDumpInterval();
-        const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
-        const bool uses_exodus = dump_viz_data && !app_initializer->getExodusIIFilename().empty();
-        const string exodus_filename = app_initializer->getExodusIIFilename();
-        const bool uses_gmv = dump_viz_data && !app_initializer->getGMVFilename().empty();
-        const string gmv_filename = app_initializer->getGMVFilename();
-
-        const bool dump_restart_data = app_initializer->dumpRestartData();
-        const int restart_dump_interval = app_initializer->getRestartDumpInterval();
-        const string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
-        const string restart_read_dirname = app_initializer->getRestartReadDirectory();
-        const int restart_restore_num = app_initializer->getRestartRestoreNumber();
-
-        const bool dump_postproc_data = app_initializer->dumpPostProcessingData();
-        const int postproc_data_dump_interval = app_initializer->getPostProcessingDataDumpInterval();
-        const string postproc_data_dump_dirname = app_initializer->getPostProcessingDataDumpDirectory();
-        if (dump_postproc_data && (postproc_data_dump_interval > 0) && !postproc_data_dump_dirname.empty())
-        {
-            Utilities::recursiveMkdir(postproc_data_dump_dirname);
-        }
-
-        const bool dump_timer_data = app_initializer->dumpTimerData();
-        const int timer_dump_interval = app_initializer->getTimerDumpInterval();
-
-        // Create a simple FE mesh with Dirichlet boundary conditions.
-        //
-        // Note that boundary condition data must be registered with each FE
-        // system before calling IBFEMethod::initializeFEData().
-        Mesh mesh(init.comm(), NDIM);
-        const double dx = input_db->getDouble("DX");
-        const double ds = input_db->getDouble("MFAC") * dx;
-        string elem_type = input_db->getString("ELEM_TYPE");
 #if (NDIM == 2)
         MeshTools::Generation::build_square(mesh,
-                                            static_cast<int>(ceil(0.1 / ds)),
-                                            static_cast<int>(ceil(1.0 / ds)),
+                                            static_cast<int>(ceil(0.1 / init.ds)),
+                                            static_cast<int>(ceil(1.0 / init.ds)),
                                             0.95,
                                             1.05,
                                             0.0,
                                             1,
-                                            Utility::string_to_enum<ElemType>(elem_type));
+                                            Utility::string_to_enum<ElemType>(init.elem_type));
 #endif
 #if (NDIM == 3)
-        mesh.read(input_db->getString("MESH_FILENAME"));
-/*        MeshTools::Generation::build_cube(mesh,
-                                          static_cast<int>(ceil(0.1 / ds)),
-                                          static_cast<int>(ceil(1.0 / ds)),
-                                          static_cast<int>(ceil(1.0 / ds)),
-                                          0.95,
-                                          1.05,
-                                          0.0,
-                                          1,
-                                          0.0,
-                                          1,
-                                          Utility::string_to_enum<ElemType>(elem_type));
-*/
-
         for (MeshBase::node_iterator it = mesh.nodes_begin();
              it != mesh.nodes_end(); ++it)
         {
@@ -238,50 +192,34 @@ run_example(int argc, char* argv[])
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
         Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
-        const string solver_type = app_initializer->getComponentDatabase("Main")->getString("solver_type");
-        if (solver_type == "STAGGERED")
-        {
-            navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
-                "INSStaggeredHierarchyIntegrator",
-                app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
-        }
-        else if (solver_type == "COLLOCATED")
-        {
-            navier_stokes_integrator = new INSCollocatedHierarchyIntegrator(
-                "INSCollocatedHierarchyIntegrator",
-                app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
-        }
-        else
-        {
-            TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
-                                                   << "Valid options are: COLLOCATED, STAGGERED");
-        }
+        navier_stokes_integrator = init.getIntegrator();
         Pointer<IBFEMethod> ib_method_ops =
             new IBFEMethod("IBFEMethod",
-                           app_initializer->getComponentDatabase("IBFEMethod"),
+                           init.getAppInitializer()->getComponentDatabase("IBFEMethod"),
                            &mesh,
-                           app_initializer->getComponentDatabase("GriddingAlgorithm")->getInteger("max_levels"),
-                           /*register_for_restart*/ true,
-                           restart_read_dirname,
-                           restart_restore_num);
+                           init.max_levels,
+                           init.restart_enabled,
+                           init.restart_read_dirname,
+                           init.restart_restore_num);
+
         Pointer<IBHierarchyIntegrator> time_integrator =
             new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
-                                              app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
+                                              init.getAppInitializer()->getComponentDatabase("IBHierarchyIntegrator"),
                                               ib_method_ops,
                                               navier_stokes_integrator);
         Pointer<CartesianGridGeometry<NDIM> > grid_geometry = new CartesianGridGeometry<NDIM>(
-            "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
+            "CartesianGeometry", init.getAppInitializer()->getComponentDatabase("CartesianGeometry"));
         Pointer<PatchHierarchy<NDIM> > patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM> > error_detector =
             new StandardTagAndInitialize<NDIM>("StandardTagAndInitialize",
                                                time_integrator,
-                                               app_initializer->getComponentDatabase("StandardTagAndInitialize"));
+                                               init.getAppInitializer()->getComponentDatabase("StandardTagAndInitialize"));
         Pointer<BergerRigoutsos<NDIM> > box_generator = new BergerRigoutsos<NDIM>();
         Pointer<LoadBalancer<NDIM> > load_balancer =
-            new LoadBalancer<NDIM>("LoadBalancer", app_initializer->getComponentDatabase("LoadBalancer"));
+            new LoadBalancer<NDIM>("LoadBalancer", init.getAppInitializer()->getComponentDatabase("LoadBalancer"));
         Pointer<GriddingAlgorithm<NDIM> > gridding_algorithm =
             new GriddingAlgorithm<NDIM>("GriddingAlgorithm",
-                                        app_initializer->getComponentDatabase("GriddingAlgorithm"),
+                                        init.getAppInitializer()->getComponentDatabase("GriddingAlgorithm"),
                                         error_detector,
                                         box_generator,
                                         load_balancer);
@@ -290,32 +228,22 @@ run_example(int argc, char* argv[])
         IBFEMethod::PK1StressFcnData PK1_dev_stress_data(PK1_dev_stress_function);
         IBFEMethod::PK1StressFcnData PK1_dil_stress_data(PK1_dil_stress_function);
         PK1_dev_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(input_db->getStringWithDefault("PK1_DEV_QUAD_ORDER", "THIRD"));
+            Utility::string_to_enum<libMesh::Order>(init.getInputDB()->getStringWithDefault("PK1_DEV_QUAD_ORDER", "THIRD"));
         PK1_dil_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(input_db->getStringWithDefault("PK1_DIL_QUAD_ORDER", "FIRST"));
+            Utility::string_to_enum<libMesh::Order>(init.getInputDB()->getStringWithDefault("PK1_DIL_QUAD_ORDER", "FIRST"));
         ib_method_ops->registerPK1StressFunction(PK1_dev_stress_data);
         ib_method_ops->registerPK1StressFunction(PK1_dil_stress_data);
         EquationSystems* equation_systems = ib_method_ops->getFEDataManager()->getEquationSystems();
 
-        // Create Eulerian initial condition specification objects.
-        if (input_db->keyExists("VelocityInitialConditions"))
-        {
-            Pointer<CartGridFunction> u_init = new muParserCartGridFunction(
-                "u_init", app_initializer->getComponentDatabase("VelocityInitialConditions"), grid_geometry);
-            navier_stokes_integrator->registerVelocityInitialConditions(u_init);
-        }
-
-        if (input_db->keyExists("PressureInitialConditions"))
-        {
-            Pointer<CartGridFunction> p_init = new muParserCartGridFunction(
-                "p_init", app_initializer->getComponentDatabase("PressureInitialConditions"), grid_geometry);
-            navier_stokes_integrator->registerPressureInitialConditions(p_init);
-        }
+        // Register pressure and velocity initial conditions.
+        init.registerVelocityInitialConditions(grid_geometry);
+        init.registerPressureInitialConditions(grid_geometry);
 
         // Create Eulerian boundary condition specification objects (when necessary).
         const IntVector<NDIM>& periodic_shift = grid_geometry->getPeriodicShift();
         vector<RobinBcCoefStrategy<NDIM>*> u_bc_coefs(NDIM);
-        if (periodic_shift.min() > 0)
+
+       if (periodic_shift.min() > 0)
         {
             for (unsigned int d = 0; d < NDIM; ++d)
             {
@@ -335,59 +263,59 @@ run_example(int argc, char* argv[])
                 const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
 
                 u_bc_coefs[d] = new muParserRobinBcCoefs(
-                    bc_coefs_name, app_initializer->getComponentDatabase(bc_coefs_db_name), grid_geometry);
+                    bc_coefs_name, init.getAppInitializer()->getComponentDatabase(bc_coefs_db_name), grid_geometry);
             }
             navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
         }
 
         // Create Eulerian body force function specification objects.
-        if (input_db->keyExists("ForcingFunction"))
+        if (init.getInputDB()->keyExists("ForcingFunction"))
         {
             Pointer<CartGridFunction> f_fcn = new muParserCartGridFunction(
-                "f_fcn", app_initializer->getComponentDatabase("ForcingFunction"), grid_geometry);
+                "f_fcn", init.getAppInitializer()->getComponentDatabase("ForcingFunction"), grid_geometry);
             time_integrator->registerBodyForceFunction(f_fcn);
         }
 
         // Set up visualization plot file writers.
-        Pointer<VisItDataWriter<NDIM> > visit_data_writer = app_initializer->getVisItDataWriter();
-        if (uses_visit)
+        Pointer<VisItDataWriter<NDIM> > visit_data_writer = init.getAppInitializer()->getVisItDataWriter();
+        if (init.uses_visit)
         {
             time_integrator->registerVisItDataWriter(visit_data_writer);
         }
-        AutoPtr<ExodusII_IO> exodus_io(uses_exodus ? new ExodusII_IO(mesh) : NULL);
-        AutoPtr<GMVIO> gmv_io(uses_gmv ? new GMVIO(mesh) : NULL);
+        AutoPtr<ExodusII_IO> exodus_io(init.uses_exodus ? new ExodusII_IO(mesh) : NULL);
+        AutoPtr<GMVIO> gmv_io(init.uses_gmv ? new GMVIO(mesh) : NULL);
 
         // Initialize hierarchy configuration and data on all patches.
         ib_method_ops->initializeFEData();
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Deallocate initialization objects.
-        app_initializer.setNull();
+        init.getAppInitializer().setNull();
 
         // Print the input database contents to the log file.
         plog << "Input database:\n";
-        input_db->printClassData(plog);
+        init.getInputDB()->printClassData(plog);
 
         // Write out initial visualization data.
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
-        if (dump_viz_data)
+        if (init.dump_viz_data)
         {
             pout << "\n\nWriting visualization files...\n\n";
-            if (uses_visit)
+            if (init.uses_visit)
             {
                 time_integrator->setupPlotData();
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             }
-            if (uses_exodus)
+            if (init.uses_exodus)
             {
                 exodus_io->write_timestep(
-                    exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
+                    init.exodus_filename, *equation_systems, iteration_num / init.viz_dump_interval + 1, loop_time);
             }
-            if (uses_gmv)
+            if (init.uses_gmv)
             {
                 std::ostringstream file_name;
-                file_name << gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
+                file_name << init.gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
                 gmv_io->write_equation_systems(file_name.str() + ".gmv", *equation_systems);
             }
         }
@@ -420,38 +348,38 @@ run_example(int argc, char* argv[])
             // processing.
             iteration_num += 1;
             const bool last_step = !time_integrator->stepsRemaining();
-            if (dump_viz_data && (iteration_num % viz_dump_interval == 0 || last_step))
+            if (init.dump_viz_data && (iteration_num % init.viz_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting visualization files...\n\n";
-                if (uses_visit)
+                if (init.uses_visit)
                 {
                     time_integrator->setupPlotData();
                     visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 }
-                if (uses_exodus)
+                if (init.uses_exodus)
                 {
                     exodus_io->write_timestep(
-                        exodus_filename, *equation_systems, iteration_num / viz_dump_interval + 1, loop_time);
+                        init.exodus_filename, *equation_systems, iteration_num / init.viz_dump_interval + 1, loop_time);
                 }
-                if (uses_gmv)
+                if (init.uses_gmv)
                 {
                     std::ostringstream file_name;
-                    file_name << gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
+                    file_name << init.gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
                     gmv_io->write_equation_systems(file_name.str() + ".gmv", *equation_systems);
                 }
             }
-            if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
+            if (init.dump_restart_data && (iteration_num % init.restart_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting restart files...\n\n";
-                RestartManager::getManager()->writeRestartFile(restart_dump_dirname, iteration_num);
-                ib_method_ops->writeFEDataToRestartFile(restart_dump_dirname, iteration_num);
+                RestartManager::getManager()->writeRestartFile(init.restart_dump_dirname, iteration_num);
+                ib_method_ops->writeFEDataToRestartFile(init.restart_dump_dirname, iteration_num);
             }
-            if (dump_timer_data && (iteration_num % timer_dump_interval == 0 || last_step))
+            if (init.dump_timer_data && (iteration_num % init.timer_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
             }
-            if (dump_postproc_data && (iteration_num % postproc_data_dump_interval == 0 || last_step))
+            if (init.dump_postproc_data && (iteration_num % init.postproc_data_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting state data...\n\n";
                 output_data(patch_hierarchy,
@@ -460,7 +388,7 @@ run_example(int argc, char* argv[])
                             equation_systems,
                             iteration_num,
                             loop_time,
-                            postproc_data_dump_dirname);
+                            init.postproc_data_dump_dirname);
             }
         }
 
@@ -470,6 +398,8 @@ run_example(int argc, char* argv[])
 
     } // cleanup dynamically allocated objects prior to shutdown
 
+*/
+    //init.getAppInitializer().setNull();
     SAMRAIManager::shutdown();
     return true;
 }

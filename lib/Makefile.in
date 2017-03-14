@@ -281,7 +281,7 @@ am__libIBAMR2d_a_SOURCES_DIST = ../src/IB/CIBMethod.cpp \
 	../src/navier_stokes/StaggeredStokesSolverManager.cpp \
 	../src/navier_stokes/StokesBcCoefStrategy.cpp \
 	../src/utilities/ConvectiveOperator.cpp \
-	../src/IB/CIBFEMethod.cpp \
+	../src/utilities/IBAMRInit.cpp ../src/IB/CIBFEMethod.cpp \
 	../src/IB/IBFECentroidPostProcessor.cpp \
 	../src/IB/IBFEMethod.cpp ../src/IB/IBFEPostProcessor.cpp \
 	../src/IB/IMPMethod.cpp ../src/IB/IMPInitializer.cpp \
@@ -404,6 +404,7 @@ am__objects_3 = ../src/IB/libIBAMR2d_a-CIBMethod.$(OBJEXT) \
 	../src/navier_stokes/libIBAMR2d_a-StaggeredStokesSolverManager.$(OBJEXT) \
 	../src/navier_stokes/libIBAMR2d_a-StokesBcCoefStrategy.$(OBJEXT) \
 	../src/utilities/libIBAMR2d_a-ConvectiveOperator.$(OBJEXT) \
+	../src/utilities/libIBAMR2d_a-IBAMRInit.$(OBJEXT) \
 	$(am__objects_2)
 am_libIBAMR2d_a_OBJECTS = $(am__objects_3) \
 	$(top_builddir)/src/adv_diff/fortran/adv_diff_consdiff2d.$(OBJEXT) \
@@ -513,7 +514,7 @@ am__libIBAMR3d_a_SOURCES_DIST = ../src/IB/CIBMethod.cpp \
 	../src/navier_stokes/StaggeredStokesSolverManager.cpp \
 	../src/navier_stokes/StokesBcCoefStrategy.cpp \
 	../src/utilities/ConvectiveOperator.cpp \
-	../src/IB/CIBFEMethod.cpp \
+	../src/utilities/IBAMRInit.cpp ../src/IB/CIBFEMethod.cpp \
 	../src/IB/IBFECentroidPostProcessor.cpp \
 	../src/IB/IBFEMethod.cpp ../src/IB/IBFEPostProcessor.cpp \
 	../src/IB/IMPMethod.cpp ../src/IB/IMPInitializer.cpp \
@@ -636,6 +637,7 @@ am__objects_5 = ../src/IB/libIBAMR3d_a-CIBMethod.$(OBJEXT) \
 	../src/navier_stokes/libIBAMR3d_a-StaggeredStokesSolverManager.$(OBJEXT) \
 	../src/navier_stokes/libIBAMR3d_a-StokesBcCoefStrategy.$(OBJEXT) \
 	../src/utilities/libIBAMR3d_a-ConvectiveOperator.$(OBJEXT) \
+	../src/utilities/libIBAMR3d_a-IBAMRInit.$(OBJEXT) \
 	$(am__objects_4)
 am_libIBAMR3d_a_OBJECTS = $(am__objects_5) \
 	$(top_builddir)/src/adv_diff/fortran/adv_diff_consdiff3d.$(OBJEXT) \
@@ -736,7 +738,7 @@ am__pkg_include_HEADERS_DIST = ../include/ibamr/RNG.h \
 	../include/ibamr/app_namespaces.h \
 	../include/ibamr/ibamr_enums.h \
 	../include/ibamr/ibamr_utilities.h \
-	../include/ibamr/namespaces.h \
+	../include/ibamr/namespaces.h ../include/ibamr/IBAMRInit.h \
 	../include/ibamr/AdvDiffCenteredConvectiveOperator.h \
 	../include/ibamr/AdvDiffConvectiveOperatorManager.h \
 	../include/ibamr/AdvDiffHierarchyIntegrator.h \
@@ -1161,6 +1163,7 @@ pkg_include_HEADERS = ../include/ibamr/RNG.h \
 	../include/ibamr/ibamr_enums.h \
 	../include/ibamr/ibamr_utilities.h \
 	../include/ibamr/namespaces.h $(am__append_4) \
+	../include/ibamr/IBAMRInit.h \
 	../include/ibamr/AdvDiffCenteredConvectiveOperator.h \
 	../include/ibamr/AdvDiffConvectiveOperatorManager.h \
 	../include/ibamr/AdvDiffHierarchyIntegrator.h \
@@ -1341,7 +1344,8 @@ DIM_INDEPENDENT_SOURCES = ../src/IB/CIBMethod.cpp \
 	../src/navier_stokes/StaggeredStokesSolver.cpp \
 	../src/navier_stokes/StaggeredStokesSolverManager.cpp \
 	../src/navier_stokes/StokesBcCoefStrategy.cpp \
-	../src/utilities/ConvectiveOperator.cpp $(am__append_5)
+	../src/utilities/ConvectiveOperator.cpp \
+	../src/utilities/IBAMRInit.cpp $(am__append_5)
 libIBAMR2d_a_CXXFLAGS = $(AM_CXXFLAGS) -DNDIM=2
 libIBAMR2d_a_CFLAGS = $(AM_CFLAGS) -DNDIM=2
 libIBAMR2d_a_SOURCES = $(DIM_INDEPENDENT_SOURCES) \
@@ -1729,6 +1733,9 @@ libIBAMR.a: $(libIBAMR_a_OBJECTS) $(libIBAMR_a_DEPENDENCIES) $(EXTRA_libIBAMR_a_
 ../src/utilities/libIBAMR2d_a-ConvectiveOperator.$(OBJEXT):  \
 	../src/utilities/$(am__dirstamp) \
 	../src/utilities/$(DEPDIR)/$(am__dirstamp)
+../src/utilities/libIBAMR2d_a-IBAMRInit.$(OBJEXT):  \
+	../src/utilities/$(am__dirstamp) \
+	../src/utilities/$(DEPDIR)/$(am__dirstamp)
 ../src/IB/libIBAMR2d_a-CIBFEMethod.$(OBJEXT):  \
 	../src/IB/$(am__dirstamp) ../src/IB/$(DEPDIR)/$(am__dirstamp)
 ../src/IB/libIBAMR2d_a-IBFECentroidPostProcessor.$(OBJEXT):  \
@@ -2039,6 +2046,9 @@ libIBAMR2d.a: $(libIBAMR2d_a_OBJECTS) $(libIBAMR2d_a_DEPENDENCIES) $(EXTRA_libIB
 ../src/utilities/libIBAMR3d_a-ConvectiveOperator.$(OBJEXT):  \
 	../src/utilities/$(am__dirstamp) \
 	../src/utilities/$(DEPDIR)/$(am__dirstamp)
+../src/utilities/libIBAMR3d_a-IBAMRInit.$(OBJEXT):  \
+	../src/utilities/$(am__dirstamp) \
+	../src/utilities/$(DEPDIR)/$(am__dirstamp)
 ../src/IB/libIBAMR3d_a-CIBFEMethod.$(OBJEXT):  \
 	../src/IB/$(am__dirstamp) ../src/IB/$(DEPDIR)/$(am__dirstamp)
 ../src/IB/libIBAMR3d_a-IBFECentroidPostProcessor.$(OBJEXT):  \
@@ -2322,7 +2332,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@../src/navier_stokes/$(DEPDIR)/libIBAMR3d_a-StokesBcCoefStrategy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/utilities/$(DEPDIR)/RNG.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/utilities/$(DEPDIR)/libIBAMR2d_a-ConvectiveOperator.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@../src/utilities/$(DEPDIR)/libIBAMR3d_a-ConvectiveOperator.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -3705,6 +3717,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/ConvectiveOperator.cpp' object='../src/utilities/libIBAMR2d_a-ConvectiveOperator.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBAMR2d_a-ConvectiveOperator.obj `if test -f '../src/utilities/ConvectiveOperator.cpp'; then $(CYGPATH_W) '../src/utilities/ConvectiveOperator.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/ConvectiveOperator.cpp'; fi`
+
+../src/utilities/libIBAMR2d_a-IBAMRInit.o: ../src/utilities/IBAMRInit.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/utilities/libIBAMR2d_a-IBAMRInit.o -MD -MP -MF ../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Tpo -c -o ../src/utilities/libIBAMR2d_a-IBAMRInit.o `test -f '../src/utilities/IBAMRInit.cpp' || echo '$(srcdir)/'`../src/utilities/IBAMRInit.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Tpo ../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/IBAMRInit.cpp' object='../src/utilities/libIBAMR2d_a-IBAMRInit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBAMR2d_a-IBAMRInit.o `test -f '../src/utilities/IBAMRInit.cpp' || echo '$(srcdir)/'`../src/utilities/IBAMRInit.cpp
+
+../src/utilities/libIBAMR2d_a-IBAMRInit.obj: ../src/utilities/IBAMRInit.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/utilities/libIBAMR2d_a-IBAMRInit.obj -MD -MP -MF ../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Tpo -c -o ../src/utilities/libIBAMR2d_a-IBAMRInit.obj `if test -f '../src/utilities/IBAMRInit.cpp'; then $(CYGPATH_W) '../src/utilities/IBAMRInit.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/IBAMRInit.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Tpo ../src/utilities/$(DEPDIR)/libIBAMR2d_a-IBAMRInit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/IBAMRInit.cpp' object='../src/utilities/libIBAMR2d_a-IBAMRInit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR2d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBAMR2d_a-IBAMRInit.obj `if test -f '../src/utilities/IBAMRInit.cpp'; then $(CYGPATH_W) '../src/utilities/IBAMRInit.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/IBAMRInit.cpp'; fi`
 
 ../src/IB/libIBAMR2d_a-CIBFEMethod.o: ../src/IB/CIBFEMethod.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR2d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/IB/libIBAMR2d_a-CIBFEMethod.o -MD -MP -MF ../src/IB/$(DEPDIR)/libIBAMR2d_a-CIBFEMethod.Tpo -c -o ../src/IB/libIBAMR2d_a-CIBFEMethod.o `test -f '../src/IB/CIBFEMethod.cpp' || echo '$(srcdir)/'`../src/IB/CIBFEMethod.cpp
@@ -5175,6 +5201,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/ConvectiveOperator.cpp' object='../src/utilities/libIBAMR3d_a-ConvectiveOperator.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBAMR3d_a-ConvectiveOperator.obj `if test -f '../src/utilities/ConvectiveOperator.cpp'; then $(CYGPATH_W) '../src/utilities/ConvectiveOperator.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/ConvectiveOperator.cpp'; fi`
+
+../src/utilities/libIBAMR3d_a-IBAMRInit.o: ../src/utilities/IBAMRInit.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/utilities/libIBAMR3d_a-IBAMRInit.o -MD -MP -MF ../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Tpo -c -o ../src/utilities/libIBAMR3d_a-IBAMRInit.o `test -f '../src/utilities/IBAMRInit.cpp' || echo '$(srcdir)/'`../src/utilities/IBAMRInit.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Tpo ../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/IBAMRInit.cpp' object='../src/utilities/libIBAMR3d_a-IBAMRInit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBAMR3d_a-IBAMRInit.o `test -f '../src/utilities/IBAMRInit.cpp' || echo '$(srcdir)/'`../src/utilities/IBAMRInit.cpp
+
+../src/utilities/libIBAMR3d_a-IBAMRInit.obj: ../src/utilities/IBAMRInit.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/utilities/libIBAMR3d_a-IBAMRInit.obj -MD -MP -MF ../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Tpo -c -o ../src/utilities/libIBAMR3d_a-IBAMRInit.obj `if test -f '../src/utilities/IBAMRInit.cpp'; then $(CYGPATH_W) '../src/utilities/IBAMRInit.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/IBAMRInit.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) ../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Tpo ../src/utilities/$(DEPDIR)/libIBAMR3d_a-IBAMRInit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='../src/utilities/IBAMRInit.cpp' object='../src/utilities/libIBAMR3d_a-IBAMRInit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR3d_a_CXXFLAGS) $(CXXFLAGS) -c -o ../src/utilities/libIBAMR3d_a-IBAMRInit.obj `if test -f '../src/utilities/IBAMRInit.cpp'; then $(CYGPATH_W) '../src/utilities/IBAMRInit.cpp'; else $(CYGPATH_W) '$(srcdir)/../src/utilities/IBAMRInit.cpp'; fi`
 
 ../src/IB/libIBAMR3d_a-CIBFEMethod.o: ../src/IB/CIBFEMethod.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libIBAMR3d_a_CXXFLAGS) $(CXXFLAGS) -MT ../src/IB/libIBAMR3d_a-CIBFEMethod.o -MD -MP -MF ../src/IB/$(DEPDIR)/libIBAMR3d_a-CIBFEMethod.Tpo -c -o ../src/IB/libIBAMR3d_a-CIBFEMethod.o `test -f '../src/IB/CIBFEMethod.cpp' || echo '$(srcdir)/'`../src/IB/CIBFEMethod.cpp

@@ -9,6 +9,7 @@ EXTRA_DIST     = input2d input3d input2d.test input3d.test
 
 EXAMPLES =
 GTESTS =
+CMB_EXAMPLES =
 EXTRA_PROGRAMS =
 if LIBMESH_ENABLED
 if SAMRAI2D_ENABLED

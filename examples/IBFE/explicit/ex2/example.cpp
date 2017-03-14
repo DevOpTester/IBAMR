@@ -61,6 +61,7 @@
 
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
+#include <ibamr/IBAMRInit.h>
 
 // Elasticity model data.
 namespace ModelData
@@ -124,11 +125,11 @@ bool
 run_example(int argc, char* argv[])
 {
     // Initialize libMesh, PETSc, MPI, and SAMRAI.
-    LibMeshInit init(argc, argv);
+//    LibMeshInit init(argc, argv);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
-
+/*
     { // cleanup dynamically allocated objects prior to shutdown
 
         // Parse command line options, set some standard options from the input
@@ -195,6 +196,7 @@ run_example(int argc, char* argv[])
                                           1,
                                           Utility::string_to_enum<ElemType>(elem_type));
 */
+/*
 
         for (MeshBase::node_iterator it = mesh.nodes_begin();
              it != mesh.nodes_end(); ++it)
@@ -205,7 +207,7 @@ run_example(int argc, char* argv[])
             X(1) += 0.5;
             X(2) += 0.5;
         }
-        
+
 #endif
         const MeshBase::const_element_iterator end_el = mesh.elements_end();
         for (MeshBase::const_element_iterator el = mesh.elements_begin(); el != end_el; ++el)
@@ -261,7 +263,7 @@ run_example(int argc, char* argv[])
                            app_initializer->getComponentDatabase("IBFEMethod"),
                            &mesh,
                            app_initializer->getComponentDatabase("GriddingAlgorithm")->getInteger("max_levels"),
-                           /*register_for_restart*/ true,
+                           /*register_for_restart*/ /*true,
                            restart_read_dirname,
                            restart_restore_num);
         Pointer<IBHierarchyIntegrator> time_integrator =
@@ -469,7 +471,7 @@ run_example(int argc, char* argv[])
         for (unsigned int d = 0; d < NDIM; ++d) delete u_bc_coefs[d];
 
     } // cleanup dynamically allocated objects prior to shutdown
-
+*/
     SAMRAIManager::shutdown();
     return true;
 }
