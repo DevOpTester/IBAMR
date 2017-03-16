@@ -126,31 +126,26 @@ run_example(int argc, char* argv[])
 {
 
     LibMeshInit libmesh_init(argc, argv);
-    IBAMRInit init = IBAMRInit::getInstance(argc, argv, &libmesh_init);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
-    //init.parse_inputdb();
-    //pout << "SAMRAI started up";
-    //Mesh mesh = init.getMesh();
-/*
+    Mesh mesh(libmesh_init.comm(), NDIM);
+    IBAMRInit init = IBAMRInit::getInstance(argc, argv, & mesh);
+    init.parse_inputdb();
+//    Mesh mesh = (*init.getMesh());
+
     { // cleanup dynamically allocated objects prior to shutdown
 
         // Parse command line options, set some standard options from the input
         // file, initialize the restart database (if this is a restarted run),
         // and enable file logging.
 #if (NDIM == 2)
-        MeshTools::Generation::build_square(mesh,
-                                            static_cast<int>(ceil(0.1 / init.ds)),
-                                            static_cast<int>(ceil(1.0 / init.ds)),
-                                            0.95,
-                                            1.05,
-                                            0.0,
-                                            1,
-                                            Utility::string_to_enum<ElemType>(init.elem_type));
+        init.build_square(0.95, 1.05, 0.0, 1);
 #endif
 #if (NDIM == 3)
-        for (MeshBase::node_iterator it = mesh.nodes_begin();
+        mesh.read("/home/deleeke/sfw/myIBAMRfork/ibamr-test-bundled-gtest/examples/IBFE/explicit/ex2/Mesh_copy.e");
+        init.translate_mesh(0.9, 0.5, 0.5);
+/*        for (MeshBase::node_iterator it = mesh.nodes_begin();
              it != mesh.nodes_end(); ++it)
         {
             Node* n = *it;
@@ -159,7 +154,7 @@ run_example(int argc, char* argv[])
             X(1) += 0.5;
             X(2) += 0.5;
         }
-
+*/
 #endif
         const MeshBase::const_element_iterator end_el = mesh.elements_end();
         for (MeshBase::const_element_iterator el = mesh.elements_begin(); el != end_el; ++el)
@@ -193,20 +188,9 @@ run_example(int argc, char* argv[])
         // and, if this is a restarted run, from the restart database.
         Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
         navier_stokes_integrator = init.getIntegrator();
-        Pointer<IBFEMethod> ib_method_ops =
-            new IBFEMethod("IBFEMethod",
-                           init.getAppInitializer()->getComponentDatabase("IBFEMethod"),
-                           &mesh,
-                           init.max_levels,
-                           init.restart_enabled,
-                           init.restart_read_dirname,
-                           init.restart_restore_num);
+        Pointer<IBFEMethod> ib_method_ops = init.getIBFEMethod();
+        Pointer<IBHierarchyIntegrator> time_integrator = init.getExplicitTimeIntegrator(ib_method_ops, navier_stokes_integrator);
 
-        Pointer<IBHierarchyIntegrator> time_integrator =
-            new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
-                                              init.getAppInitializer()->getComponentDatabase("IBHierarchyIntegrator"),
-                                              ib_method_ops,
-                                              navier_stokes_integrator);
         Pointer<CartesianGridGeometry<NDIM> > grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", init.getAppInitializer()->getComponentDatabase("CartesianGeometry"));
         Pointer<PatchHierarchy<NDIM> > patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
@@ -323,6 +307,7 @@ run_example(int argc, char* argv[])
         // Main time step loop.
         double loop_time_end = time_integrator->getEndTime();
         double dt = 0.0;
+/*
         while (!MathUtilities<double>::equalEps(loop_time, loop_time_end) && time_integrator->stepsRemaining())
         {
             iteration_num = time_integrator->getIntegratorStep();
@@ -395,11 +380,11 @@ run_example(int argc, char* argv[])
         // Cleanup Eulerian boundary condition specification objects (when
         // necessary).
         for (unsigned int d = 0; d < NDIM; ++d) delete u_bc_coefs[d];
-
+*/
     } // cleanup dynamically allocated objects prior to shutdown
 
-*/
-    //init.getAppInitializer().setNull();
+
+   // init.getAppInitializer().setNull();
     SAMRAIManager::shutdown();
     return true;
 }

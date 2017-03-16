@@ -42,7 +42,7 @@ OUTPUT_F                   = TRUE
 OUTPUT_OMEGA               = TRUE
 OUTPUT_DIV_U               = TRUE
 ENABLE_LOGGING             = TRUE
-
+INPUT_MESH_FILE            = "Mesh_copy.e"
 // collocated solver parameters
 PROJECTION_METHOD_TYPE = "PRESSURE_UPDATE"
 SECOND_ORDER_PRESSURE_UPDATE = TRUE

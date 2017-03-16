@@ -75,18 +75,15 @@ bool IBAMRInit::init_exists = false;
 IBAMRInit * IBAMRInit::ibamr_init = NULL;
 int IBAMRInit::argc = 0;
 char** IBAMRInit::argv = NULL;
-LibMeshInit * IBAMRInit::libmesh_init = NULL;
 
 // Factory method
-IBAMRInit IBAMRInit::getInstance(int num_args, char** args, LibMeshInit * lm_init)
+IBAMRInit IBAMRInit::getInstance(int num_args, char** args, Mesh * m)
 {
     if (! init_exists)
     {
-        pout << "Creating IBAMRInit object \n";
         IBAMRInit::argc = num_args;
         IBAMRInit::argv = args;
-        IBAMRInit::libmesh_init = lm_init;
-        ibamr_init = new IBAMRInit();
+        ibamr_init = new IBAMRInit(m);
         init_exists = true;
         return (*ibamr_init);
     }
@@ -94,19 +91,13 @@ IBAMRInit IBAMRInit::getInstance(int num_args, char** args, LibMeshInit * lm_ini
 }
 
 // Constructor
-IBAMRInit::IBAMRInit()
-{
-//    LibMeshInit temp(argc, argv);
-//    libmesh_init = & temp;
-    //SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
-    //SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
-    //SAMRAIManager::startup();
-    return;
+IBAMRInit::IBAMRInit(Mesh * m){
+    mesh = m;
 } // IBAMRInit
 
 IBAMRInit::~IBAMRInit()
 {
-    //SAMRAIManager::shutdown();
+    deallocateAppInitializer();
     init_exists = false;
 }
 
@@ -127,17 +118,74 @@ Pointer<Database>
 IBAMRInit::getInputDB(){
     return input_db;
 }
-Mesh
-IBAMRInit::getMesh(){
-    return (*mesh);
-}
 
 Pointer<INSHierarchyIntegrator>
 IBAMRInit::getIntegrator(){
     return navier_stokes_integrator;
 }
 
+Pointer<IBFEMethod>
+IBAMRInit::getIBFEMethod()
+{
+    return new IBFEMethod("IBFEMethod",
+                           app_initializer->getComponentDatabase("IBFEMethod"),
+                           mesh,
+                           max_levels,
+                           restart_enabled,
+                           restart_read_dirname,
+                           restart_restore_num);
+}
 
+
+Pointer<IBHierarchyIntegrator>
+IBAMRInit::getExplicitTimeIntegrator( SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops,
+                              SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator )
+{
+    return new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
+                    app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
+                    ib_method_ops,
+                    ins_hier_integrator, restart_enabled);
+}
+
+void
+IBAMRInit::build_square(double xmin, double xmax, double ymin, double ymax ){
+   //build_square (UnstructuredMesh &mesh, const unsigned int nx, const unsigned int ny,
+   //const Real xmin=0., const Real xmax=1., const Real ymin=0., const Real ymax=1.,
+   //        const ElemType type=INVALID_ELEM, const bool gauss_lobatto_grid=false)
+    MeshTools::Generation::build_square((*mesh) , static_cast<int>(ceil(0.1) / ds),
+                                        static_cast<int>(ceil(1.0 / ds)),
+                                        xmin, xmax, ymin, ymax, Utility::string_to_enum<ElemType>(elem_type));
+
+}
+
+void
+IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement )
+{
+    // 2D translation
+        for (MeshBase::node_iterator it = mesh->nodes_begin();
+             it != mesh->nodes_end(); ++it)
+        {
+            Node* n = *it;
+            libMesh::Point& X = *n;
+            X(0) += xdisplacement;
+            X(1) += ydisplacement;
+        }
+}
+
+void
+IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement, double zdisplacement)
+{
+    //3D translation
+        for (MeshBase::node_iterator it = mesh->nodes_begin();
+             it != mesh->nodes_end(); ++it)
+        {
+            Node* n = *it;
+            libMesh::Point& X = *n;
+            X(0) += xdisplacement;
+            X(1) += ydisplacement;
+            X(2) += zdisplacement;
+        }
+}
 // private methods
 void
 IBAMRInit::parse_inputdb()
@@ -146,11 +194,14 @@ IBAMRInit::parse_inputdb()
     input_db              = app_initializer->getInputDatabase();
     dump_viz_data         = app_initializer->dumpVizData();
     viz_dump_interval     = app_initializer->getVizDumpInterval();
+
     uses_visit            = dump_viz_data && app_initializer->getVisItDataWriter();
     uses_exodus           = dump_viz_data && !app_initializer->getExodusIIFilename().empty();
-    exodus_filename       = app_initializer->getExodusIIFilename();
     uses_gmv              = dump_viz_data && !app_initializer->getGMVFilename().empty();
+    uses_forcing_function = input_db->keyExists("ForcingFunction");
+
     gmv_filename          = app_initializer->getGMVFilename();
+    exodus_filename       = app_initializer->getExodusIIFilename();
     dump_postproc_data    = app_initializer->dumpPostProcessingData();
     dx                    = input_db->getDouble("DX");
     ds                    = input_db->getDouble("MFAC") * dx;
@@ -177,23 +228,9 @@ IBAMRInit::parse_inputdb()
     } else {
         mesh_option = "";
     }
-    Mesh tmp_mesh(libmesh_init->comm(), NDIM);
-    mesh = & tmp_mesh;
 
     if (input_db->keyExists("input_mesh_file")){
-        if (input_db->keyExists("mesh_option")){
-
-            TBOX_ERROR("Provide the path to an existing exodus file with \n"
-                    << "INPUT_MESH_FILE or use built-in structure from LibMesh \n"
-                    << "using MESH_OPTION. Combined use is not supported \n"
-                    << "Valid options for MESH_OPTION include: \n"
-                    << " CUBE, SQUARE, CYLINDER, SPHERE");
-        }
         input_mesh_filename = input_db->getString("INPUT_MESH_FILE");
-        int is_exodus = input_mesh_filename.find(".e");
-        if (is_exodus !=std::string::npos){
-            mesh->read(input_mesh_filename);
-        }
     }
 
     postproc_data_dump_interval = app_initializer->getPostProcessingDataDumpInterval();

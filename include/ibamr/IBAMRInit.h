@@ -77,13 +77,11 @@ class IBAMRInit{
         static bool init_exists;
         static IBAMRInit * ibamr_init;  // singleton
          // private constructor, use factory method to get instance
-        IBAMRInit();
+        IBAMRInit(Mesh * m);
         // internal methods
     protected:
-        Pointer<IBFEMethod>             ibfe_method;
         Pointer<AppInitializer>         app_initializer;
         Pointer<Database>               input_db;
-        static LibMeshInit *            libmesh_init;
         Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
         Mesh *                          mesh;
         static int                      argc;
@@ -91,52 +89,58 @@ class IBAMRInit{
 
 
     public:
-        static  IBAMRInit getInstance(int argc, char** argv, LibMeshInit * lm_init);
+        static  IBAMRInit getInstance(int argc, char** argv, Mesh * mesh);
         virtual ~IBAMRInit();
-        void parse_inputdb();
+        void    parse_inputdb();
         void    deallocateAppInitializer();
         // standard options set in input file
         bool   dump_viz_data;
-        int    viz_dump_interval;
+        bool   dump_restart_data;
+        bool   dump_postproc_data;
+        bool   dump_timer_data;
         bool   uses_visit;
         bool   uses_exodus;
-        string exodus_filename;
         bool   uses_gmv;
-        string gmv_filename;
-        bool   restart_enabled;
-        bool   dump_restart_data;
-        int    restart_dump_interval;
-        string restart_dump_dirname;
-        string restart_read_dirname;
-        string bc_coefs_name;
-        string bc_coefs_db_name;
-        int    restart_restore_num;
-        bool   dump_postproc_data;
-        int    postproc_data_dump_interval;
-        string postproc_data_dump_dirname;
-        bool   dump_timer_data;
-        int    timer_dump_interval;
-        double dx;
-        double ds;
-        string elem_type;
-        string solver_type;
         bool   uses_inital_velocity;
         bool   uses_initial_pressure;
         bool   uses_forcing_function;
+        bool   restart_enabled;
         int    max_levels;
+        int    postproc_data_dump_interval;
+        int    restart_dump_interval;
+        int    restart_restore_num;
+        int    timer_dump_interval;
+        int    viz_dump_interval;
+        double ds;
+        double dx;
+        string bc_coefs_name;
+        string bc_coefs_db_name;
         string data_dump_dirname;
-        string mesh_option;       // options include: cube, square, cylinder, sphere
+        string elem_type;
+        string exodus_filename;
+        string gmv_filename;
         string input_mesh_filename;
+        string mesh_option;       // options include: cube, square, cylinder, sphere
+        string postproc_data_dump_dirname;
+        string restart_dump_dirname;
+        string restart_read_dirname;
+        string solver_type;
 
         // methods to modify objects owned by init object
         void registerVelocityInitialConditions(Pointer<CartesianGridGeometry<NDIM> > grid_geometry);
         void registerPressureInitialConditions(Pointer<CartesianGridGeometry<NDIM> > grid_geometry);
+        void build_square(double xmin=0.0, double xmax=1.0, double ymin=0.0, double ymax=1.0 );
+        void translate_mesh(double xdisplacement=0.0, double ydisplacement=0.0, double zdisplacement=0.0);
+        void translate_mesh(double xdisplacement=0.0, double ydisplacement=0.0);
 
         // methods to retrieve objects associated, throw useful
         // error messages when unable to retrieve
-        Pointer<AppInitializer>                  getAppInitializer();
-        Pointer<Database>                        getInputDB();
-        Mesh                                     getMesh();
-        Pointer<INSHierarchyIntegrator>          getIntegrator();
+        Pointer<AppInitializer>         getAppInitializer();
+        Pointer<Database>               getInputDB();
+        Pointer<INSHierarchyIntegrator> getIntegrator();
+        Pointer<IBFEMethod>             getIBFEMethod();
+        Pointer<IBHierarchyIntegrator>  getExplicitTimeIntegrator(
+                                            SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops,
+                                            SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator );
 };
 #endif //#ifndef included_IBAMR_IBAMRInit
