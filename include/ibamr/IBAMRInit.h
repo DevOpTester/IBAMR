@@ -78,6 +78,7 @@ class IBAMRInit{
         static IBAMRInit * ibamr_init;  // singleton
          // private constructor, use factory method to get instance
         IBAMRInit(Mesh * m);
+        void    parse_inputdb();
         // internal methods
     protected:
         Pointer<AppInitializer>         app_initializer;
@@ -91,7 +92,6 @@ class IBAMRInit{
     public:
         static  IBAMRInit getInstance(int argc, char** argv, Mesh * mesh);
         virtual ~IBAMRInit();
-        void    parse_inputdb();
         void    deallocateAppInitializer();
         // standard options set in input file
         bool   dump_viz_data;
@@ -126,21 +126,24 @@ class IBAMRInit{
         string restart_read_dirname;
         string solver_type;
 
-        // methods to modify objects owned by init object
+        // methods to modify objects init has access to
         void registerVelocityInitialConditions(Pointer<CartesianGridGeometry<NDIM> > grid_geometry);
         void registerPressureInitialConditions(Pointer<CartesianGridGeometry<NDIM> > grid_geometry);
         void build_square(double xmin=0.0, double xmax=1.0, double ymin=0.0, double ymax=1.0 );
         void translate_mesh(double xdisplacement=0.0, double ydisplacement=0.0, double zdisplacement=0.0);
         void translate_mesh(double xdisplacement=0.0, double ydisplacement=0.0);
 
-        // methods to retrieve objects associated, throw useful
+        // methods to retrieve objects init owns or knows how to construct, throw useful
         // error messages when unable to retrieve
-        Pointer<AppInitializer>         getAppInitializer();
-        Pointer<Database>               getInputDB();
-        Pointer<INSHierarchyIntegrator> getIntegrator();
-        Pointer<IBFEMethod>             getIBFEMethod();
-        Pointer<IBHierarchyIntegrator>  getExplicitTimeIntegrator(
-                                            SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops,
-                                            SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator );
+        Pointer<AppInitializer>               getAppInitializer();
+        Pointer<Database>                     getInputDB();
+        Pointer<INSHierarchyIntegrator>       getIntegrator();
+        Pointer<IBFEMethod>                   getIBFEMethod();
+        Pointer<CartesianGridGeometry<NDIM> > getCartesianGridGeometry();
+        Pointer<IBHierarchyIntegrator>        getExplicitTimeIntegrator(
+                                               SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops,
+                                               SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator );
+        Pointer<PatchHierarchy<NDIM> >        getPatchHierarchy(Pointer<CartesianGridGeometry<NDIM> > grid_geometry);
+
 };
 #endif //#ifndef included_IBAMR_IBAMRInit

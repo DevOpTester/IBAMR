@@ -62,7 +62,6 @@
 // Set up application namespace declarations
 #include <ibamr/app_namespaces.h>
 #include <ibamr/IBAMRInit.h>
-
 // Elasticity model data.
 namespace ModelData
 {
@@ -124,27 +123,26 @@ void output_data(Pointer<PatchHierarchy<NDIM> > patch_hierarchy,
 bool
 run_example(int argc, char* argv[])
 {
-
-    LibMeshInit libmesh_init(argc, argv);
+    // Initialize libMesh, PETSc, MPI, and SAMRAI.
+    LibMeshInit init(argc, argv);
     SAMRAI_MPI::setCommunicator(PETSC_COMM_WORLD);
     SAMRAI_MPI::setCallAbortInSerialInsteadOfExit();
     SAMRAIManager::startup();
-    Mesh mesh(libmesh_init.comm(), NDIM);
-    IBAMRInit init = IBAMRInit::getInstance(argc, argv, & mesh);
-    init.parse_inputdb();
-//    Mesh mesh = (*init.getMesh());
 
     { // cleanup dynamically allocated objects prior to shutdown
 
         // Parse command line options, set some standard options from the input
         // file, initialize the restart database (if this is a restarted run),
         // and enable file logging.
+        Mesh mesh(init.comm(), NDIM);
+        IBAMRInit ibamr_init = IBAMRInit::getInstance(argc, argv, & mesh);
+      //  ibamr_init.parse_inputdb();
 #if (NDIM == 2)
-        init.build_square(0.95, 1.05, 0.0, 1);
+        ibamr_init.build_square(0.95, 1.05, 0.0, 1.0);
 #endif
 #if (NDIM == 3)
         mesh.read("/home/deleeke/sfw/myIBAMRfork/ibamr-test-bundled-gtest/examples/IBFE/explicit/ex2/Mesh_copy.e");
-        init.translate_mesh(0.9, 0.5, 0.5);
+        ibamr_init.translate_mesh(0.9, 0.5, 0.5);
 /*        for (MeshBase::node_iterator it = mesh.nodes_begin();
              it != mesh.nodes_end(); ++it)
         {
@@ -187,23 +185,26 @@ run_example(int argc, char* argv[])
         // application.  These objects are configured from the input database
         // and, if this is a restarted run, from the restart database.
         Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
-        navier_stokes_integrator = init.getIntegrator();
-        Pointer<IBFEMethod> ib_method_ops = init.getIBFEMethod();
-        Pointer<IBHierarchyIntegrator> time_integrator = init.getExplicitTimeIntegrator(ib_method_ops, navier_stokes_integrator);
+        navier_stokes_integrator = ibamr_init.getIntegrator();
+        Pointer<IBFEMethod> ib_method_ops = ibamr_init.getIBFEMethod();
+        Pointer<IBHierarchyIntegrator> time_integrator;
+        time_integrator = ibamr_init.getExplicitTimeIntegrator(ib_method_ops,
+                                                              navier_stokes_integrator);
 
-        Pointer<CartesianGridGeometry<NDIM> > grid_geometry = new CartesianGridGeometry<NDIM>(
-            "CartesianGeometry", init.getAppInitializer()->getComponentDatabase("CartesianGeometry"));
-        Pointer<PatchHierarchy<NDIM> > patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
+        Pointer<CartesianGridGeometry<NDIM> > grid_geometry = 
+                ibamr_init.getCartesianGridGeometry();
+        Pointer<PatchHierarchy<NDIM> > patch_hierarchy =
+                ibamr_init.getPatchHierarchy(grid_geometry);
         Pointer<StandardTagAndInitialize<NDIM> > error_detector =
             new StandardTagAndInitialize<NDIM>("StandardTagAndInitialize",
                                                time_integrator,
-                                               init.getAppInitializer()->getComponentDatabase("StandardTagAndInitialize"));
+                                               ibamr_init.getAppInitializer()->getComponentDatabase("StandardTagAndInitialize"));
         Pointer<BergerRigoutsos<NDIM> > box_generator = new BergerRigoutsos<NDIM>();
         Pointer<LoadBalancer<NDIM> > load_balancer =
-            new LoadBalancer<NDIM>("LoadBalancer", init.getAppInitializer()->getComponentDatabase("LoadBalancer"));
+            new LoadBalancer<NDIM>("LoadBalancer", ibamr_init.getAppInitializer()->getComponentDatabase("LoadBalancer"));
         Pointer<GriddingAlgorithm<NDIM> > gridding_algorithm =
             new GriddingAlgorithm<NDIM>("GriddingAlgorithm",
-                                        init.getAppInitializer()->getComponentDatabase("GriddingAlgorithm"),
+                                        ibamr_init.getAppInitializer()->getComponentDatabase("GriddingAlgorithm"),
                                         error_detector,
                                         box_generator,
                                         load_balancer);
@@ -212,16 +213,16 @@ run_example(int argc, char* argv[])
         IBFEMethod::PK1StressFcnData PK1_dev_stress_data(PK1_dev_stress_function);
         IBFEMethod::PK1StressFcnData PK1_dil_stress_data(PK1_dil_stress_function);
         PK1_dev_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(init.getInputDB()->getStringWithDefault("PK1_DEV_QUAD_ORDER", "THIRD"));
+            Utility::string_to_enum<libMesh::Order>(ibamr_init.getInputDB()->getStringWithDefault("PK1_DEV_QUAD_ORDER", "THIRD"));
         PK1_dil_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(init.getInputDB()->getStringWithDefault("PK1_DIL_QUAD_ORDER", "FIRST"));
+            Utility::string_to_enum<libMesh::Order>(ibamr_init.getInputDB()->getStringWithDefault("PK1_DIL_QUAD_ORDER", "FIRST"));
         ib_method_ops->registerPK1StressFunction(PK1_dev_stress_data);
         ib_method_ops->registerPK1StressFunction(PK1_dil_stress_data);
         EquationSystems* equation_systems = ib_method_ops->getFEDataManager()->getEquationSystems();
 
-        // Register pressure and velocity initial conditions.
-        init.registerVelocityInitialConditions(grid_geometry);
-        init.registerPressureInitialConditions(grid_geometry);
+        // Register pressure and velocity ibamr_initial conditions.
+        ibamr_init.registerVelocityInitialConditions(grid_geometry);
+        ibamr_init.registerPressureInitialConditions(grid_geometry);
 
         // Create Eulerian boundary condition specification objects (when necessary).
         const IntVector<NDIM>& periodic_shift = grid_geometry->getPeriodicShift();
@@ -247,59 +248,59 @@ run_example(int argc, char* argv[])
                 const string bc_coefs_db_name = bc_coefs_db_name_stream.str();
 
                 u_bc_coefs[d] = new muParserRobinBcCoefs(
-                    bc_coefs_name, init.getAppInitializer()->getComponentDatabase(bc_coefs_db_name), grid_geometry);
+                    bc_coefs_name, ibamr_init.getAppInitializer()->getComponentDatabase(bc_coefs_db_name), grid_geometry);
             }
             navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
         }
 
         // Create Eulerian body force function specification objects.
-        if (init.getInputDB()->keyExists("ForcingFunction"))
+        if (ibamr_init.getInputDB()->keyExists("ForcingFunction"))
         {
             Pointer<CartGridFunction> f_fcn = new muParserCartGridFunction(
-                "f_fcn", init.getAppInitializer()->getComponentDatabase("ForcingFunction"), grid_geometry);
+                "f_fcn", ibamr_init.getAppInitializer()->getComponentDatabase("ForcingFunction"), grid_geometry);
             time_integrator->registerBodyForceFunction(f_fcn);
         }
 
         // Set up visualization plot file writers.
-        Pointer<VisItDataWriter<NDIM> > visit_data_writer = init.getAppInitializer()->getVisItDataWriter();
-        if (init.uses_visit)
+        Pointer<VisItDataWriter<NDIM> > visit_data_writer = ibamr_init.getAppInitializer()->getVisItDataWriter();
+        if (ibamr_init.uses_visit)
         {
             time_integrator->registerVisItDataWriter(visit_data_writer);
         }
-        AutoPtr<ExodusII_IO> exodus_io(init.uses_exodus ? new ExodusII_IO(mesh) : NULL);
-        AutoPtr<GMVIO> gmv_io(init.uses_gmv ? new GMVIO(mesh) : NULL);
+        AutoPtr<ExodusII_IO> exodus_io(ibamr_init.uses_exodus ? new ExodusII_IO(mesh) : NULL);
+        AutoPtr<GMVIO> gmv_io(ibamr_init.uses_gmv ? new GMVIO(mesh) : NULL);
 
         // Initialize hierarchy configuration and data on all patches.
         ib_method_ops->initializeFEData();
         time_integrator->initializePatchHierarchy(patch_hierarchy, gridding_algorithm);
 
         // Deallocate initialization objects.
-        init.getAppInitializer().setNull();
+        ibamr_init.getAppInitializer().setNull();
 
         // Print the input database contents to the log file.
         plog << "Input database:\n";
-        init.getInputDB()->printClassData(plog);
+        ibamr_init.getInputDB()->printClassData(plog);
 
         // Write out initial visualization data.
         int iteration_num = time_integrator->getIntegratorStep();
         double loop_time = time_integrator->getIntegratorTime();
-        if (init.dump_viz_data)
+        if (ibamr_init.dump_viz_data)
         {
             pout << "\n\nWriting visualization files...\n\n";
-            if (init.uses_visit)
+            if (ibamr_init.uses_visit)
             {
                 time_integrator->setupPlotData();
                 visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
             }
-            if (init.uses_exodus)
+            if (ibamr_init.uses_exodus)
             {
                 exodus_io->write_timestep(
-                    init.exodus_filename, *equation_systems, iteration_num / init.viz_dump_interval + 1, loop_time);
+                    ibamr_init.exodus_filename, *equation_systems, iteration_num / ibamr_init.viz_dump_interval + 1, loop_time);
             }
-            if (init.uses_gmv)
+            if (ibamr_init.uses_gmv)
             {
                 std::ostringstream file_name;
-                file_name << init.gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
+                file_name << ibamr_init.gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
                 gmv_io->write_equation_systems(file_name.str() + ".gmv", *equation_systems);
             }
         }
@@ -307,7 +308,7 @@ run_example(int argc, char* argv[])
         // Main time step loop.
         double loop_time_end = time_integrator->getEndTime();
         double dt = 0.0;
-/*
+
         while (!MathUtilities<double>::equalEps(loop_time, loop_time_end) && time_integrator->stepsRemaining())
         {
             iteration_num = time_integrator->getIntegratorStep();
@@ -333,38 +334,38 @@ run_example(int argc, char* argv[])
             // processing.
             iteration_num += 1;
             const bool last_step = !time_integrator->stepsRemaining();
-            if (init.dump_viz_data && (iteration_num % init.viz_dump_interval == 0 || last_step))
+            if (ibamr_init.dump_viz_data && (iteration_num % ibamr_init.viz_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting visualization files...\n\n";
-                if (init.uses_visit)
+                if (ibamr_init.uses_visit)
                 {
                     time_integrator->setupPlotData();
                     visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
                 }
-                if (init.uses_exodus)
+                if (ibamr_init.uses_exodus)
                 {
                     exodus_io->write_timestep(
-                        init.exodus_filename, *equation_systems, iteration_num / init.viz_dump_interval + 1, loop_time);
+                        ibamr_init.exodus_filename, *equation_systems, iteration_num / ibamr_init.viz_dump_interval + 1, loop_time);
                 }
-                if (init.uses_gmv)
+                if (ibamr_init.uses_gmv)
                 {
                     std::ostringstream file_name;
-                    file_name << init.gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
+                    file_name << ibamr_init.gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
                     gmv_io->write_equation_systems(file_name.str() + ".gmv", *equation_systems);
                 }
             }
-            if (init.dump_restart_data && (iteration_num % init.restart_dump_interval == 0 || last_step))
+            if (ibamr_init.dump_restart_data && (iteration_num % ibamr_init.restart_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting restart files...\n\n";
-                RestartManager::getManager()->writeRestartFile(init.restart_dump_dirname, iteration_num);
-                ib_method_ops->writeFEDataToRestartFile(init.restart_dump_dirname, iteration_num);
+                RestartManager::getManager()->writeRestartFile(ibamr_init.restart_dump_dirname, iteration_num);
+                ib_method_ops->writeFEDataToRestartFile(ibamr_init.restart_dump_dirname, iteration_num);
             }
-            if (init.dump_timer_data && (iteration_num % init.timer_dump_interval == 0 || last_step))
+            if (ibamr_init.dump_timer_data && (iteration_num % ibamr_init.timer_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting timer data...\n\n";
                 TimerManager::getManager()->print(plog);
             }
-            if (init.dump_postproc_data && (iteration_num % init.postproc_data_dump_interval == 0 || last_step))
+            if (ibamr_init.dump_postproc_data && (iteration_num % ibamr_init.postproc_data_dump_interval == 0 || last_step))
             {
                 pout << "\nWriting state data...\n\n";
                 output_data(patch_hierarchy,
@@ -373,18 +374,16 @@ run_example(int argc, char* argv[])
                             equation_systems,
                             iteration_num,
                             loop_time,
-                            init.postproc_data_dump_dirname);
+                            ibamr_init.postproc_data_dump_dirname);
             }
         }
 
         // Cleanup Eulerian boundary condition specification objects (when
         // necessary).
         for (unsigned int d = 0; d < NDIM; ++d) delete u_bc_coefs[d];
-*/
+
     } // cleanup dynamically allocated objects prior to shutdown
 
-
-   // init.getAppInitializer().setNull();
     SAMRAIManager::shutdown();
     return true;
 }

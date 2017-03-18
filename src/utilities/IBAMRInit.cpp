@@ -85,6 +85,7 @@ IBAMRInit IBAMRInit::getInstance(int num_args, char** args, Mesh * m)
         IBAMRInit::argv = args;
         ibamr_init = new IBAMRInit(m);
         init_exists = true;
+        ibamr_init->parse_inputdb();
         return (*ibamr_init);
     }
     return (*ibamr_init);
@@ -121,6 +122,23 @@ IBAMRInit::getInputDB(){
 
 Pointer<INSHierarchyIntegrator>
 IBAMRInit::getIntegrator(){
+    if (solver_type == "STAGGERED")
+    {
+        navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
+            "INSStaggeredHierarchyIntegrator",
+            app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
+    }
+    else if (solver_type == "COLLOCATED")
+    {
+        navier_stokes_integrator = new INSCollocatedHierarchyIntegrator(
+            "INSCollocatedHierarchyIntegrator",
+            app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
+    }
+    else
+    {
+        TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
+                    << "Valid for options for SOLVER_TYPE are: COLLOCATED, STAGGERED");
+    }
     return navier_stokes_integrator;
 }
 
@@ -145,6 +163,19 @@ IBAMRInit::getExplicitTimeIntegrator( SAMRAI::tbox::Pointer< IBStrategy > ib_met
                     app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
                     ib_method_ops,
                     ins_hier_integrator, restart_enabled);
+}
+
+Pointer<CartesianGridGeometry<NDIM> >
+IBAMRInit::getCartesianGridGeometry()
+{
+        return new CartesianGridGeometry<NDIM>(
+            "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
+}
+
+
+Pointer<PatchHierarchy<NDIM> >
+IBAMRInit::getPatchHierarchy(Pointer<CartesianGridGeometry<NDIM> > grid_geometry){
+    return new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
 }
 
 void
@@ -186,6 +217,10 @@ IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement, double zdi
             X(2) += zdisplacement;
         }
 }
+
+
+
+
 // private methods
 void
 IBAMRInit::parse_inputdb()
@@ -247,24 +282,6 @@ IBAMRInit::parse_inputdb()
     // Note that boundary condition data must be registered with each FE
     // system before calling IBFEMethod::initializeFEData().
     solver_type         = app_initializer->getComponentDatabase("Main")->getString("solver_type");
-
-    if (solver_type == "STAGGERED")
-    {
-        navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
-            "INSStaggeredHierarchyIntegrator",
-            app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
-    }
-    else if (solver_type == "COLLOCATED")
-    {
-        navier_stokes_integrator = new INSCollocatedHierarchyIntegrator(
-            "INSCollocatedHierarchyIntegrator",
-            app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
-    }
-    else
-    {
-        TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
-                    << "Valid for options for SOLVER_TYPE are: COLLOCATED, STAGGERED");
-    }
 }
 
 void
