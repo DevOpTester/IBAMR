@@ -83,8 +83,20 @@ class IBAMRInit{
     protected:
         Pointer<AppInitializer>         app_initializer;
         Pointer<Database>               input_db;
-        Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
         Mesh *                          mesh;
+        static Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
+        static Pointer<IBFEMethod>                      ib_method_ops;
+        static SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator;
+        static Pointer<CartesianGridGeometry<NDIM> >    grid_geometry;
+        static Pointer<IBHierarchyIntegrator>           time_integrator;
+        static Pointer<PatchHierarchy<NDIM> >           patch_hierarchy;
+        static Pointer<StandardTagAndInitialize<NDIM> > error_detector;
+        static Pointer<BergerRigoutsos<NDIM> >          box_generator;
+        static Pointer<LoadBalancer<NDIM> >             load_balancer;
+        static Pointer<GriddingAlgorithm<NDIM> >        gridding_algorithm;
+        libMesh::Order                           PK1_dev_stress_order;
+        libMesh::Order                           PK1_dil_stress_order;
+
         static int                      argc;
         static char**                   argv;
 
@@ -133,17 +145,30 @@ class IBAMRInit{
         void translate_mesh(double xdisplacement=0.0, double ydisplacement=0.0, double zdisplacement=0.0);
         void translate_mesh(double xdisplacement=0.0, double ydisplacement=0.0);
 
+        //methods for use during simulation
+        void log_start(int iteration_num, double loop_time);
+        void log_end(int iteration_num, double loop_time);
+        void dump_data(int interation_num, double loop_time);
+
         // methods to retrieve objects init owns or knows how to construct, throw useful
         // error messages when unable to retrieve
-        Pointer<AppInitializer>               getAppInitializer();
-        Pointer<Database>                     getInputDB();
-        Pointer<INSHierarchyIntegrator>       getIntegrator();
-        Pointer<IBFEMethod>                   getIBFEMethod();
-        Pointer<CartesianGridGeometry<NDIM> > getCartesianGridGeometry();
-        Pointer<IBHierarchyIntegrator>        getExplicitTimeIntegrator(
-                                               SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops,
-                                               SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator );
-        Pointer<PatchHierarchy<NDIM> >        getPatchHierarchy(Pointer<CartesianGridGeometry<NDIM> > grid_geometry);
-
+        Pointer<AppInitializer>                  getAppInitializer();
+        Pointer<Database>                        getInputDB();
+        Pointer<INSHierarchyIntegrator>          getIntegrator();
+        Pointer<IBFEMethod>                      getIBFEMethod();
+        Pointer<CartesianGridGeometry<NDIM> >    getCartesianGridGeometry();
+        Pointer<IBHierarchyIntegrator>           getExplicitTimeIntegrator(
+                                                 SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops=ib_method_ops,
+                                                 SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator=ins_hier_integrator );
+        Pointer<PatchHierarchy<NDIM> >           getPatchHierarchy(Pointer<CartesianGridGeometry<NDIM> > grid_geometry=grid_geometry);
+        Pointer<StandardTagAndInitialize<NDIM> > getErrorDetector( Pointer<IBHierarchyIntegrator> time_integrator=time_integrator );
+        Pointer<BergerRigoutsos<NDIM> >          getBoxGenerator();
+        Pointer<LoadBalancer<NDIM> >             getLoadBalancer();
+        Pointer<GriddingAlgorithm<NDIM> >        getGriddingAlgorithm(
+                                                    Pointer<StandardTagAndInitialize<NDIM> > error_detector=error_detector,
+                                                    Pointer<BergerRigoutsos<NDIM> > box_generator=box_generator,
+                                                    Pointer<LoadBalancer<NDIM> > load_balancer=load_balancer);
+        libMesh::Order                           getPK1DevOrder(string DEFAULT="THIRD");
+        libMesh::Order                           getPK1DilOrder(string DEFAULT="FIRST");
 };
 #endif //#ifndef included_IBAMR_IBAMRInit

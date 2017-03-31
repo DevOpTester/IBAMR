@@ -138,7 +138,7 @@ run_example(int argc, char* argv[])
         IBAMRInit ibamr_init = IBAMRInit::getInstance(argc, argv, & mesh);
       //  ibamr_init.parse_inputdb();
 #if (NDIM == 2)
-        ibamr_init.build_square(0.95, 1.05, 0.0, 1.0);
+        ibamr_init.build_square(0.5, 0.55, 0.0, 1.0);
 #endif
 #if (NDIM == 3)
         mesh.read("/home/deleeke/sfw/myIBAMRfork/ibamr-test-bundled-gtest/examples/IBFE/explicit/ex2/Mesh_copy.e");
@@ -187,35 +187,19 @@ run_example(int argc, char* argv[])
         Pointer<INSHierarchyIntegrator> navier_stokes_integrator;
         navier_stokes_integrator = ibamr_init.getIntegrator();
         Pointer<IBFEMethod> ib_method_ops = ibamr_init.getIBFEMethod();
-        Pointer<IBHierarchyIntegrator> time_integrator;
-        time_integrator = ibamr_init.getExplicitTimeIntegrator(ib_method_ops,
-                                                              navier_stokes_integrator);
-
-        Pointer<CartesianGridGeometry<NDIM> > grid_geometry = 
-                ibamr_init.getCartesianGridGeometry();
-        Pointer<PatchHierarchy<NDIM> > patch_hierarchy =
-                ibamr_init.getPatchHierarchy(grid_geometry);
-        Pointer<StandardTagAndInitialize<NDIM> > error_detector =
-            new StandardTagAndInitialize<NDIM>("StandardTagAndInitialize",
-                                               time_integrator,
-                                               ibamr_init.getAppInitializer()->getComponentDatabase("StandardTagAndInitialize"));
-        Pointer<BergerRigoutsos<NDIM> > box_generator = new BergerRigoutsos<NDIM>();
-        Pointer<LoadBalancer<NDIM> > load_balancer =
-            new LoadBalancer<NDIM>("LoadBalancer", ibamr_init.getAppInitializer()->getComponentDatabase("LoadBalancer"));
-        Pointer<GriddingAlgorithm<NDIM> > gridding_algorithm =
-            new GriddingAlgorithm<NDIM>("GriddingAlgorithm",
-                                        ibamr_init.getAppInitializer()->getComponentDatabase("GriddingAlgorithm"),
-                                        error_detector,
-                                        box_generator,
-                                        load_balancer);
+        Pointer<IBHierarchyIntegrator> time_integrator = ibamr_init.getExplicitTimeIntegrator();
+        Pointer<CartesianGridGeometry<NDIM> > grid_geometry = ibamr_init.getCartesianGridGeometry();
+        Pointer<PatchHierarchy<NDIM> > patch_hierarchy = ibamr_init.getPatchHierarchy();
+        Pointer<StandardTagAndInitialize<NDIM> > error_detector = ibamr_init.getErrorDetector();
+        Pointer<BergerRigoutsos<NDIM> > box_generator = ibamr_init.getBoxGenerator();
+        Pointer<LoadBalancer<NDIM> > load_balancer = ibamr_init.getLoadBalancer();
+        Pointer<GriddingAlgorithm<NDIM> > gridding_algorithm = ibamr_init.getGriddingAlgorithm();
 
         // Configure the IBFE solver.
         IBFEMethod::PK1StressFcnData PK1_dev_stress_data(PK1_dev_stress_function);
         IBFEMethod::PK1StressFcnData PK1_dil_stress_data(PK1_dil_stress_function);
-        PK1_dev_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(ibamr_init.getInputDB()->getStringWithDefault("PK1_DEV_QUAD_ORDER", "THIRD"));
-        PK1_dil_stress_data.quad_order =
-            Utility::string_to_enum<libMesh::Order>(ibamr_init.getInputDB()->getStringWithDefault("PK1_DIL_QUAD_ORDER", "FIRST"));
+        PK1_dev_stress_data.quad_order = ibamr_init.getPK1DevOrder();
+        PK1_dil_stress_data.quad_order = ibamr_init.getPK1DilOrder();
         ib_method_ops->registerPK1StressFunction(PK1_dev_stress_data);
         ib_method_ops->registerPK1StressFunction(PK1_dil_stress_data);
         EquationSystems* equation_systems = ib_method_ops->getFEDataManager()->getEquationSystems();
@@ -314,20 +298,13 @@ run_example(int argc, char* argv[])
             iteration_num = time_integrator->getIntegratorStep();
             loop_time = time_integrator->getIntegratorTime();
 
-            pout << "\n";
-            pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-            pout << "At beginning of timestep # " << iteration_num << "\n";
-            pout << "Simulation time is " << loop_time << "\n";
+            ibamr_init.log_start(iteration_num, loop_time);
 
             dt = time_integrator->getMaximumTimeStepSize();
             time_integrator->advanceHierarchy(dt);
             loop_time += dt;
 
-            pout << "\n";
-            pout << "At end       of timestep # " << iteration_num << "\n";
-            pout << "Simulation time is " << loop_time << "\n";
-            pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-            pout << "\n";
+            ibamr_init.log_end(iteration_num, loop_time);
 
             // At specified intervals, write visualization and restart files,
             // print out timer data, and store hierarchy data for post

@@ -76,6 +76,17 @@ IBAMRInit * IBAMRInit::ibamr_init = NULL;
 int IBAMRInit::argc = 0;
 char** IBAMRInit::argv = NULL;
 
+Pointer<INSHierarchyIntegrator>          IBAMRInit::navier_stokes_integrator = NULL;
+Pointer<IBFEMethod>                      IBAMRInit::ib_method_ops = NULL;
+SAMRAI::tbox::Pointer< INSHierarchyIntegrator > IBAMRInit::ins_hier_integrator = NULL;
+Pointer<CartesianGridGeometry<NDIM> >    IBAMRInit::grid_geometry = NULL;
+Pointer<IBHierarchyIntegrator>           IBAMRInit::time_integrator = NULL;
+Pointer<PatchHierarchy<NDIM> >           IBAMRInit::patch_hierarchy = NULL;
+Pointer<StandardTagAndInitialize<NDIM> > IBAMRInit::error_detector = NULL;
+Pointer<BergerRigoutsos<NDIM> >          IBAMRInit::box_generator = NULL;
+Pointer<LoadBalancer<NDIM> >             IBAMRInit::load_balancer = NULL;
+Pointer<GriddingAlgorithm<NDIM> >        IBAMRInit::gridding_algorithm = NULL;
+
 // Factory method
 IBAMRInit IBAMRInit::getInstance(int num_args, char** args, Mesh * m)
 {
@@ -92,7 +103,8 @@ IBAMRInit IBAMRInit::getInstance(int num_args, char** args, Mesh * m)
 }
 
 // Constructor
-IBAMRInit::IBAMRInit(Mesh * m){
+IBAMRInit::IBAMRInit(Mesh * m)
+{
     mesh = m;
 } // IBAMRInit
 
@@ -100,6 +112,19 @@ IBAMRInit::~IBAMRInit()
 {
     deallocateAppInitializer();
     init_exists = false;
+    argc = 0;
+    argv = NULL;
+
+    navier_stokes_integrator = NULL;
+    ib_method_ops = NULL;
+    ins_hier_integrator = NULL;
+    grid_geometry = NULL;
+    time_integrator = NULL;
+    patch_hierarchy = NULL;
+    error_detector = NULL;
+    box_generator = NULL;
+    load_balancer = NULL;
+    gridding_algorithm = NULL;
 }
 
 void
@@ -111,33 +136,44 @@ IBAMRInit::deallocateAppInitializer()
 //getters to access private and protected objects
 
 Pointer<AppInitializer>
-IBAMRInit::getAppInitializer(){
+IBAMRInit::getAppInitializer()
+{
+    if (!app_initializer){
+        TBOX_ERROR("App initializer not located!" <<"\n");
+    }
     return app_initializer;
 }
 
 Pointer<Database>
-IBAMRInit::getInputDB(){
+IBAMRInit::getInputDB()
+{
+    if (!input_db){
+        TBOX_ERROR("No input database located!" <<"\n");
+    }
     return input_db;
 }
 
 Pointer<INSHierarchyIntegrator>
-IBAMRInit::getIntegrator(){
-    if (solver_type == "STAGGERED")
-    {
-        navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
-            "INSStaggeredHierarchyIntegrator",
-            app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
-    }
-    else if (solver_type == "COLLOCATED")
-    {
-        navier_stokes_integrator = new INSCollocatedHierarchyIntegrator(
-            "INSCollocatedHierarchyIntegrator",
-            app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
-    }
-    else
-    {
-        TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
-                    << "Valid for options for SOLVER_TYPE are: COLLOCATED, STAGGERED");
+IBAMRInit::getIntegrator()
+{
+    if (!navier_stokes_integrator){
+        if (solver_type == "STAGGERED")
+        {
+            navier_stokes_integrator = new INSStaggeredHierarchyIntegrator(
+                "INSStaggeredHierarchyIntegrator",
+                app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
+        }
+        else if (solver_type == "COLLOCATED")
+        {
+            navier_stokes_integrator = new INSCollocatedHierarchyIntegrator(
+                "INSCollocatedHierarchyIntegrator",
+                app_initializer->getComponentDatabase("INSCollocatedHierarchyIntegrator"));
+        }
+        else
+        {
+            TBOX_ERROR("Unsupported solver type: " << solver_type << "\n"
+                        << "Valid for options for SOLVER_TYPE are: COLLOCATED, STAGGERED");
+        }
     }
     return navier_stokes_integrator;
 }
@@ -145,41 +181,251 @@ IBAMRInit::getIntegrator(){
 Pointer<IBFEMethod>
 IBAMRInit::getIBFEMethod()
 {
-    return new IBFEMethod("IBFEMethod",
+    if (!ib_method_ops){
+        if (input_db->keyExists("IBFEMethod")){
+        ib_method_ops = new IBFEMethod("IBFEMethod",
                            app_initializer->getComponentDatabase("IBFEMethod"),
                            mesh,
                            max_levels,
                            restart_enabled,
                            restart_read_dirname,
                            restart_restore_num);
+        }
+        else
+        {
+            TBOX_ERROR("You made a call to getIBFEMethod"
+                <<" but no IBFEMethod database was found in the input file"<< "\n");
+        }
+    }
+    return ib_method_ops;
+
 }
+
 
 
 Pointer<IBHierarchyIntegrator>
 IBAMRInit::getExplicitTimeIntegrator( SAMRAI::tbox::Pointer< IBStrategy > ib_method_ops,
                               SAMRAI::tbox::Pointer< INSHierarchyIntegrator > ins_hier_integrator )
 {
-    return new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
+    if (!ib_method_ops){
+        ib_method_ops = getIBFEMethod();
+    }
+    if (!ins_hier_integrator){
+        ins_hier_integrator = getIntegrator();
+    }
+    if (!time_integrator){
+        if (input_db->keyExists("IBHierarchyIntegrator")){
+            time_integrator = new IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
                     app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
                     ib_method_ops,
                     ins_hier_integrator, restart_enabled);
+        }
+        else
+        {
+            TBOX_ERROR("You made a call to getExplicitTimeIntegrator"
+                <<" but no IBHierarchyIntegrator database was found in the input file"<< "\n");
+        }
+    }
+    return time_integrator;
 }
 
 Pointer<CartesianGridGeometry<NDIM> >
 IBAMRInit::getCartesianGridGeometry()
 {
-        return new CartesianGridGeometry<NDIM>(
+    if (!grid_geometry){
+        if (input_db->keyExists("CartesianGeometry")){
+            grid_geometry = new CartesianGridGeometry<NDIM>(
             "CartesianGeometry", app_initializer->getComponentDatabase("CartesianGeometry"));
+        }
+        else
+        {
+            TBOX_ERROR("You made a call to getCartesianGridGeometry"
+                <<" but no CartesianGeometry database was found in the input file"<< "\n");
+        }
+    }
+    return grid_geometry;
 }
 
 
 Pointer<PatchHierarchy<NDIM> >
-IBAMRInit::getPatchHierarchy(Pointer<CartesianGridGeometry<NDIM> > grid_geometry){
-    return new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
+IBAMRInit::getPatchHierarchy(Pointer<CartesianGridGeometry<NDIM> > grid_geometry)
+{
+    if (!patch_hierarchy){
+        if (!grid_geometry){
+            grid_geometry = getCartesianGridGeometry();
+        }
+        patch_hierarchy = new PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
+    }
+    return patch_hierarchy;
+}
+
+Pointer<StandardTagAndInitialize<NDIM> >
+IBAMRInit::getErrorDetector( Pointer<IBHierarchyIntegrator> time_integrator )
+{
+    if (!error_detector){
+        if (!time_integrator){
+            time_integrator = getExplicitTimeIntegrator();
+        }
+        if (input_db->keyExists("StandardTagAndInitialize")){
+            error_detector = new StandardTagAndInitialize<NDIM>("StandardTagAndInitialzie",
+                                                time_integrator,
+                                                getAppInitializer()->getComponentDatabase("StandardTagAndInitialize"));
+        }
+        else
+        {
+            TBOX_ERROR("You made a call to getErrorDetector"
+                <<" but no StandardTagAndInitialize database was found in the input file"<< "\n");
+        }
+    }
+    return error_detector;
+}
+
+Pointer<BergerRigoutsos<NDIM> >
+IBAMRInit::getBoxGenerator()
+{
+    if (!box_generator){
+        box_generator = new BergerRigoutsos<NDIM>();
+    }
+    return box_generator;
+}
+
+Pointer<LoadBalancer<NDIM> >
+IBAMRInit::getLoadBalancer()
+{
+    if (!load_balancer){
+        if (input_db->keyExists("LoadBalancer")){
+
+            load_balancer = new LoadBalancer<NDIM>("LoadBalancer", getAppInitializer()->getComponentDatabase("LoadBalancer"));
+        }
+        else
+        {
+            TBOX_ERROR("You made a call to getLoadBalancer"
+                <<" but no LoadBalancer database was found in the input file"<< "\n");
+        }
+    }
+    return load_balancer;
+}
+
+
+Pointer<GriddingAlgorithm<NDIM> >
+IBAMRInit::getGriddingAlgorithm( Pointer<StandardTagAndInitialize<NDIM> > error_detector,
+                                 Pointer<BergerRigoutsos<NDIM> > box_generator,
+                                 Pointer<LoadBalancer<NDIM> > load_balancer)
+{
+    if (!gridding_algorithm){
+        if (!error_detector){
+            error_detector = getErrorDetector();
+        }
+        if (!box_generator){
+            box_generator = getBoxGenerator();
+        }
+        if (!load_balancer){
+            load_balancer = getLoadBalancer();
+        }
+        if (input_db->keyExists("GriddingAlgorithm")){
+            gridding_algorithm = new GriddingAlgorithm<NDIM>("GriddingAlgorithm",
+                                        getAppInitializer()->getComponentDatabase("GriddingAlgorithm"),
+                                        error_detector,
+                                        box_generator,
+                                        load_balancer);
+        }
+        else
+        {
+            TBOX_ERROR("You made a call to getGriddingAlgorithm"
+                <<" but no GriddingAlgorithm database was found in the input file"<< "\n");
+        }
+    }
+    return gridding_algorithm;
+}
+
+libMesh::Order
+IBAMRInit::getPK1DevOrder(string DEFAULT)
+{
+    return Utility::string_to_enum<libMesh::Order>(getInputDB()->getStringWithDefault("PK1_DEV_QUAD_ORDER", DEFAULT));
+}
+
+libMesh::Order
+IBAMRInit::getPK1DilOrder(string DEFAULT)
+{
+
+    return Utility::string_to_enum<libMesh::Order>(getInputDB()->getStringWithDefault("PK1_DIL_QUAD_ORDER", DEFAULT));
 }
 
 void
-IBAMRInit::build_square(double xmin, double xmax, double ymin, double ymax ){
+IBAMRInit::log_start(int iteration_num, double loop_time)
+{
+    pout << "\n";
+    pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+    pout << "At beginning of timestep # " << iteration_num << "\n";
+    pout << "Simulation time is " << loop_time << "\n";
+}
+
+void
+IBAMRInit::log_end(int iteration_num, double loop_time)
+{
+    pout << "\n";
+    pout << "At end       of timestep # " << iteration_num << "\n";
+    pout << "Simulation time is " << loop_time << "\n";
+    pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+    pout << "\n";
+}
+
+void
+dump_data(int iteration_num, double loop_time)
+{
+/*
+    IBAMRInit * self = ibamr_init;
+    const bool last_step = !time_integrator->stepsRemaining();
+    if (self->dump_viz_data && (iteration_num % self->viz_dump_interval == 0 || last_step))
+    {
+        pout << "\nWriting visualization files...\n\n";
+        if (self->uses_visit)
+        {
+            time_integrator->setupPlotData();
+            self->visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
+        }
+        if (uses_exodus)
+        {
+            exodus_io->write_timestep(exodus_filename,
+                                        *equation_systems,
+                                        iteration_num / viz_dump_interval + 1,
+                                        loop_time);
+        }
+        if (uses_gmv)
+        {
+            std::ostringstream file_name;
+            file_name << gmv_filename + "_" << std::setw(6) << std::setfill('0') << std::right << iteration_num;
+            gmv_io->write_equation_systems(file_name.str() + ".gmv", *equation_systems);
+        }
+    }
+    if (dump_restart_data && (iteration_num % restart_dump_interval == 0 || last_step))
+    {
+        pout << "\nWriting restart files...\n\n";
+        RestartManager::getManager()->writeRestartFile(ibamr_init.restart_dump_dirname, iteration_num);
+        ib_method_ops->writeFEDataToRestartFile(ibamr_init.restart_dump_dirname, iteration_num);
+    }
+    if (ibamr_init.dump_timer_data && (iteration_num % ibamr_init.timer_dump_interval == 0 || last_step))
+    {
+        pout << "\nWriting timer data...\n\n";
+        TimerManager::getManager()->print(plog);
+    }
+    if (ibamr_init.dump_postproc_data && (iteration_num % ibamr_init.postproc_data_dump_interval == 0 || last_step))
+    {
+        pout << "\nWriting state data...\n\n";
+        output_data(patch_hierarchy,
+                    navier_stokes_integrator,
+                    mesh,
+                    equation_systems,
+                    iteration_num,
+                    loop_time,
+                    ibamr_init.postproc_data_dump_dirname);
+    }
+*/
+}
+
+void
+IBAMRInit::build_square(double xmin, double xmax, double ymin, double ymax )
+{
    //build_square (UnstructuredMesh &mesh, const unsigned int nx, const unsigned int ny,
    //const Real xmin=0., const Real xmax=1., const Real ymin=0., const Real ymax=1.,
    //        const ElemType type=INVALID_ELEM, const bool gauss_lobatto_grid=false)
@@ -192,7 +438,6 @@ IBAMRInit::build_square(double xmin, double xmax, double ymin, double ymax ){
 void
 IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement )
 {
-    // 2D translation
         for (MeshBase::node_iterator it = mesh->nodes_begin();
              it != mesh->nodes_end(); ++it)
         {
@@ -206,7 +451,6 @@ IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement )
 void
 IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement, double zdisplacement)
 {
-    //3D translation
         for (MeshBase::node_iterator it = mesh->nodes_begin();
              it != mesh->nodes_end(); ++it)
         {
@@ -217,9 +461,6 @@ IBAMRInit::translate_mesh(double xdisplacement, double ydisplacement, double zdi
             X(2) += zdisplacement;
         }
 }
-
-
-
 
 // private methods
 void
